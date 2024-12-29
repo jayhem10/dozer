@@ -13,12 +13,16 @@
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/vue-fontawesome": "^3.0.8",
-    "@nuxtjs/supabase": "^1.1.7",
+    "@nuxtjs/supabase": "^1.4.5",
     "@nuxtjs/tailwindcss": "^6.11.4",
     "@pinia/nuxt": "^0.5.1",
     "nuxt": "^3.13.0",
     "pinia": "^2.1.7",
     "vue-tippy": "^6.6.0",
     "vue-toastification": "^2.0.0-rc.5"
+  },
+  "devDependencies": {
+    "@nuxt/types": "^2.18.1",
+    "typescript": "^5.7.2"
   }
 }

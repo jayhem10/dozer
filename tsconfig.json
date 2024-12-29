@@ -1,4 +1,18 @@
 {
-  // https://v3.nuxtjs.org/concepts/typescript
-  "extends": "./.nuxt/tsconfig.json"
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["@types/node", "@nuxt/types"]
+  },
+  "include": [
+    "types/**/*.d.ts",  // Assurez-vous que TypeScript inclut ce dossier
+    "nuxt.config.ts",
+    "pages/**/*.ts",
+    "components/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".nuxt", "dist"]
 }

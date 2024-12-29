@@ -1,8 +1,13 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
+import { defineNuxtConfig } from 'nuxt/config';
+
 export default defineNuxtConfig({
   compatibilityDate: "2024-04-03",
   devtools: { enabled: false },
-  modules: ["@nuxtjs/supabase", "@nuxtjs/tailwindcss", "@pinia/nuxt"],
+  modules: [
+    "@nuxtjs/supabase", // Assurez-vous que ce module est bien inclus
+    "@nuxtjs/tailwindcss",
+    "@pinia/nuxt"
+  ],
   supabase: {
     url: process.env.SUPABASE_URL,
     key: process.env.SUPABASE_KEY,
@@ -19,10 +24,10 @@ export default defineNuxtConfig({
     "~/assets/css/main.css",
     "@fortawesome/fontawesome-svg-core/styles.css",
     "tippy.js/dist/tippy.css",
-    "vue-toastification/dist/index.css", // Include toastification CSS
+    "vue-toastification/dist/index.css",
   ],
   build: {
     transpile: ["@fortawesome/vue-fontawesome"],
   },
-  plugins: ["~/plugins/toast.js"], // Register the toast plugin here
+  plugins: ["~/plugins/toast.js"],
 });
