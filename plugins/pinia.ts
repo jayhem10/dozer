@@ -1,1 +1,0 @@
-// This plugin can be safely removed as Pinia is now properly configured in nuxt.config.ts

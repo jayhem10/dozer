@@ -1,15 +1,7 @@
-// types/supabase.d.ts
-declare module '@nuxt/types' {
-    interface NuxtConfig {
-      supabase?: {
-        url: string;
-        key: string;
-        redirectOptions: {
-          login: string;
-          callback: string;
-          exclude: string[];
-        };
-      };
-    }
-  }
-  
+declare module "#supabase" {
+  import { SupabaseClient } from "@supabase/supabase-js";
+
+  export const useSupabaseClient: () => SupabaseClient;
+  export const useSupabaseUser: () => any;
+  export const useSupabaseAuth: () => any;
+}

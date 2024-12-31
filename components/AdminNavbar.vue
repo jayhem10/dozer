@@ -1,210 +1,155 @@
 <template>
   <aside
     :class="{ 'w-80': isSidebarOpen, 'w-24': !isSidebarOpen }"
-    class="fixed h-screen bg-white border-r shadow-sm flex flex-col justify-between transition-all duration-300"
+    class="fixed h-screen bg-gray-900 text-white flex flex-col justify-between shadow-md transition-all duration-300"
   >
     <!-- Sidebar Content -->
     <div class="flex flex-col h-full">
       <!-- Admin App Name -->
-      <div class="p-4 text-center border-b border-gray-200">
+      <div class="p-4 text-center border-b border-gray-700">
         <h1
           :class="{
             'text-xl font-bold': isSidebarOpen,
             'text-lg font-bold': !isSidebarOpen,
           }"
-          class="text-gray-700 cursor-pointer"
-          @click="navigate('/admin')"
+          class="cursor-pointer text-white"
+          @click="navigateTo('/admin')"
         >
           Echo
         </h1>
-        <h2 v-if="isSidebarOpen" class="text-sm text-gray-500">Admin</h2>
+        <h2 v-if="isSidebarOpen" class="text-sm text-gray-400">Admin</h2>
       </div>
 
-      <!-- Admin Navigation -->
-      <ul class="text-center space-y-4 mt-6">
-        <li>
+      <ul class="mt-6 space-y-1">
+        <li v-for="link in navLinks" :key="link.path" class="group">
           <div
             v-if="!isSidebarOpen"
-            v-tippy="{ content: 'Sondages', placement: 'right' }"
+            v-tippy="{ content: link.label, placement: 'right' }"
           >
             <button
-              @click="navigate('/admin/surveys')"
-              class="flex items-center w-full px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
+              @click="navigateTo(link.path)"
+              class="w-full flex items-center justify-center h-12 transition-colors rounded-md group-hover:bg-gray-800"
             >
               <font-awesome-icon
-                :icon="['fas', 'clipboard-list']"
-                class="mx-auto text-2xl"
+                :icon="link.icon"
+                class="text-2xl text-gray-300 group-hover:text-white"
               />
             </button>
           </div>
           <button
             v-else
-            @click="navigate('/admin/surveys')"
-            class="flex items-center w-full px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
+            @click="navigateTo(link.path)"
+            class="flex items-center px-4 py-3 w-full rounded-md group-hover:bg-gray-800 transition-colors"
           >
-            <font-awesome-icon
-              :icon="['fas', 'clipboard-list']"
-              class="mr-2 text-xl"
-            />
-            <span class="flex-1 text-left">Sondages</span>
-          </button>
-        </li>
-        <li>
-          <div
-            v-if="!isSidebarOpen"
-            v-tippy="{ content: 'Résultats', placement: 'right' }"
-          >
-            <button
-              @click="navigate('/admin/results')"
-              class="flex items-center w-full px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
-            >
+            <span class="flex items-center min-w-[24px] justify-center">
               <font-awesome-icon
-                :icon="['fas', 'chart-bar']"
-                class="mx-auto text-2xl"
+                :icon="link.icon"
+                class="text-xl text-gray-300 group-hover:text-white"
               />
-            </button>
-          </div>
-          <button
-            v-else
-            @click="navigate('/admin/results')"
-            class="flex items-center w-full px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
-          >
-            <font-awesome-icon
-              :icon="['fas', 'chart-bar']"
-              class="mr-2 text-xl"
-            />
-            <span class="flex-1 text-left">Résultats</span>
-          </button>
-        </li>
-        <li>
-          <div
-            v-if="!isSidebarOpen"
-            v-tippy="{ content: 'Collaborateurs', placement: 'right' }"
-          >
-            <button
-              @click="navigate('/admin/collaborators')"
-              class="flex items-center w-full px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
-            >
-              <font-awesome-icon
-                :icon="['fas', 'users']"
-                class="mx-auto text-2xl"
-              />
-            </button>
-          </div>
-          <button
-            v-else
-            @click="navigate('/admin/collaborators')"
-            class="flex items-center w-full px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
-          >
-            <font-awesome-icon :icon="['fas', 'users']" class="mr-2 text-xl" />
-            <span class="flex-1 text-left">Collaborateurs</span>
+            </span>
+            <span class="ml-4 text-gray-300 group-hover:text-white">{{
+              link.label
+            }}</span>
           </button>
         </li>
       </ul>
     </div>
 
-    <!-- Logout, Back, and Toggle Buttons -->
-    <div class="p-4 border-t border-gray-200 text-center space-y-4">
+    <div class="p-4 border-t border-gray-700">
+      <!-- Toggle Sidebar -->
       <div
         v-if="!isSidebarOpen"
-        v-tippy="{ content: 'Retour', placement: 'right' }"
-      >
-        <button
-          @click="goBack"
-          class="flex items-center w-full px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold rounded transition-colors"
-        >
-          <font-awesome-icon
-            :icon="['fas', 'arrow-left']"
-            class="mx-auto text-2xl"
-          />
-        </button>
-      </div>
-      <button
-        v-else
-        @click="goBack"
-        class="flex items-center w-full px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold rounded transition-colors"
-      >
-        <font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-2 text-xl" />
-        <span class="flex-1 text-left">Retour</span>
-      </button>
-
-      <!-- Toggle Button -->
-      <div
-        v-if="!isSidebarOpen"
-        v-tippy="{ content: 'Réduire/Agrandir', placement: 'right' }"
+        v-tippy="{
+          content: isSidebarOpen ? 'Réduire' : 'Agrandir',
+          placement: 'right',
+        }"
       >
         <button
           @click="$emit('toggle')"
-          class="flex items-center w-full px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold rounded transition-colors"
+          class="w-full flex items-center justify-center h-12 rounded-md bg-gradient-to-r from-purple-500 to-blue-500 hover:scale-105 transform transition"
         >
           <font-awesome-icon
             :icon="['fas', 'arrows-alt-h']"
-            class="mx-auto text-2xl"
+            class="text-xl text-white"
           />
         </button>
       </div>
-      <button
-        v-else
-        @click="$emit('toggle')"
-        class="flex items-center w-full px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold rounded transition-colors"
-      >
-        <font-awesome-icon
-          :icon="['fas', 'arrows-alt-h']"
-          class="mr-2 text-xl"
-        />
-        <span class="flex-1 text-left">{{
-          isSidebarOpen ? "Réduire" : "Agrandir"
-        }}</span>
-      </button>
+      <div v-else>
+        <button
+          @click="$emit('toggle')"
+          class="w-full flex items-center h-12 rounded-md bg-gradient-to-r from-purple-500 to-blue-500 hover:scale-105 transform transition px-4"
+        >
+          <font-awesome-icon
+            :icon="['fas', 'arrows-alt-h']"
+            class="mr-2 text-xl text-white"
+          />
+          <span class="text-white font-bold">Réduire</span>
+        </button>
+      </div>
 
+      <!-- Logout -->
       <div
         v-if="!isSidebarOpen"
         v-tippy="{ content: 'Déconnexion', placement: 'right' }"
       >
         <button
           @click="logout"
-          class="flex items-center w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded transition-colors"
+          class="w-full flex items-center justify-center h-12 mt-4 rounded-md bg-gradient-to-r from-red-500 to-pink-500 hover:scale-105 transform transition"
         >
           <font-awesome-icon
             :icon="['fas', 'sign-out-alt']"
-            class="mx-auto text-2xl"
+            class="text-xl text-white"
           />
         </button>
       </div>
-      <button
-        v-else
-        @click="logout"
-        class="flex items-center w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded transition-colors"
-      >
-        <font-awesome-icon
-          :icon="['fas', 'sign-out-alt']"
-          class="mr-2 text-xl"
-        />
-        <span class="flex-1 text-left">Déconnexion</span>
-      </button>
+      <div v-else>
+        <button
+          @click="logout"
+          class="w-full flex items-center h-12 mt-4 rounded-md bg-gradient-to-r from-red-500 to-pink-500 hover:scale-105 transform transition px-4"
+        >
+          <font-awesome-icon
+            :icon="['fas', 'sign-out-alt']"
+            class="mr-2 text-xl text-white"
+          />
+          <span class="text-white font-bold">Déconnexion</span>
+        </button>
+      </div>
     </div>
   </aside>
 </template>
 
 <script setup>
-import { useRouter } from "vue-router";
+import { ref } from "vue";
 
 defineProps(["isSidebarOpen"]);
 defineEmits(["toggle"]);
 
 const supabase = useSupabaseClient();
-const router = useRouter();
 
-const navigate = (route) => {
-  navigateTo(route);
+const navLinks = ref([
+  {
+    label: "Sondages",
+    path: "/admin/surveys",
+    icon: ["fas", "clipboard-list"],
+  },
+  { label: "Résultats", path: "/admin/results", icon: ["fas", "chart-bar"] },
+  {
+    label: "Collaborateurs",
+    path: "/admin/collaborators",
+    icon: ["fas", "users"],
+  },
+]);
+
+const navigateTo = (path) => {
+  window.location.href = path;
 };
 
 const logout = async () => {
   await supabase.auth.signOut();
   navigateTo("/login");
 };
-
-const goBack = () => {
-  router.back();
-};
 </script>
+
+<style scoped>
+/* Add custom styles here if needed */
+</style>

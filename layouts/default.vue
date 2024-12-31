@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex">
+  <div class="min-h-screen bg-blue-50 flex">
     <!-- Navbar -->
     <Navbar
       v-if="!isAdmin"
@@ -29,12 +29,11 @@ import Navbar from "@/components/Navbar.vue";
 import AdminNavbar from "@/components/AdminNavbar.vue";
 
 const isSidebarOpen = ref(true);
-const user = useSupabaseUser(); // Récupère l'utilisateur connecté
+const user = useSupabaseUser();
 
 const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value;
 };
 
-// Vérifie si l'utilisateur est admin (ou simplement connecté)
 const isAdmin = computed(() => !!user.value);
 </script>

@@ -19,6 +19,8 @@ import {
   faTimes,
   faFileExport,
   faUsers,
+  faExclamationCircle,
+  faPaperPlane,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -39,7 +41,9 @@ library.add(
   faCogs,
   faTimes,
   faFileExport,
-  faUsers
+  faUsers,
+  faExclamationCircle,
+  faPaperPlane
 );
 
 config.autoAddCss = false;

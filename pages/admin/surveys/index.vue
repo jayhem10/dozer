@@ -7,28 +7,39 @@
         <button
           v-tippy="'Créer un sondage'"
           @click="createSurvey"
-          class="bg-blue-500 text-white px-4 py-2 rounded-md shadow hover:bg-blue-600 transition"
+          class="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2 rounded-md shadow hover:from-blue-500 hover:to-blue-700 transition"
         >
           <font-awesome-icon :icon="['fas', 'plus']" />
         </button>
-        <button
-          v-tippy="'Désactiver tous les sondages'"
-          @click="deactivateAll"
-          class="bg-orange-500 text-white px-4 py-2 rounded-md shadow hover:bg-orange-600 transition"
-          :disabled="!hasActiveSurvey"
+        <div
+          v-tippy="
+            !hasActiveSurvey
+              ? 'Aucun sondage actif à désactiver'
+              : 'Désactiver tous les sondages'
+          "
         >
-          <font-awesome-icon :icon="['fas', 'power-off']" />
-        </button>
+          <button
+            @click="deactivateAll"
+            class="bg-gradient-to-r from-orange-400 to-orange-600 text-white px-4 py-2 rounded-md shadow hover:from-orange-500 hover:to-orange-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="!hasActiveSurvey"
+          >
+            <font-awesome-icon
+              :icon="!hasActiveSurvey ? ['fas', 'ban'] : ['fas', 'power-off']"
+            />
+          </button>
+        </div>
+
         <button
           v-tippy="'Retour'"
           @click="backToAdmin"
-          class="bg-gray-500 text-white px-4 py-2 rounded-md shadow hover:bg-gray-600 transition"
+          class="bg-gradient-to-r from-gray-400 to-gray-600 text-white px-4 py-2 rounded-md shadow hover:from-gray-500 hover:to-gray-700 transition"
         >
           <font-awesome-icon :icon="['fas', 'arrow-left']" />
         </button>
       </div>
     </div>
 
+    <!-- Search Bar -->
     <div class="relative mb-6">
       <input
         v-model="searchText"
@@ -46,12 +57,14 @@
       </button>
     </div>
 
+    <!-- Loader -->
     <div v-if="isLoading" class="flex justify-center items-center h-64">
       <div
         class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
       ></div>
     </div>
 
+    <!-- Surveys List -->
     <div v-else>
       <div
         v-if="filteredSurveys.length === 0"
@@ -74,14 +87,14 @@
             <button
               v-tippy="'Voir les clés'"
               @click="viewSurveyKeys(survey.id)"
-              class="bg-blue-500 text-white px-4 py-2 rounded-md shadow hover:bg-blue-600 transition"
+              class="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2 rounded-md shadow hover:from-blue-500 hover:to-blue-700 transition"
             >
               <font-awesome-icon :icon="['fas', 'key']" />
             </button>
             <button
               v-tippy="'Modifier'"
               @click="editSurvey(survey.id)"
-              class="bg-yellow-500 text-white px-4 py-2 rounded-md shadow hover:bg-yellow-600 transition"
+              class="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white px-4 py-2 rounded-md shadow hover:from-yellow-500 hover:to-yellow-700 transition"
             >
               <font-awesome-icon :icon="['fas', 'edit']" />
             </button>
@@ -89,7 +102,7 @@
             <button
               v-tippy="'Supprimer'"
               @click="confirmDelete(survey.id)"
-              class="bg-red-500 text-white px-4 py-2 rounded-md shadow hover:bg-red-600 transition"
+              class="bg-gradient-to-r from-red-400 to-red-600 text-white px-4 py-2 rounded-md shadow hover:from-red-500 hover:to-red-700 transition"
             >
               <font-awesome-icon :icon="['fas', 'trash']" />
             </button>
@@ -99,8 +112,8 @@
               class="px-4 py-2 rounded-md shadow transition"
               :class="
                 survey.is_active
-                  ? 'bg-green-500 text-white hover:bg-green-600'
-                  : 'bg-gray-300 text-gray-800 hover:bg-gray-400'
+                  ? 'bg-gradient-to-r from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700'
+                  : 'bg-gradient-to-r from-gray-100 to-gray-300 text-gray-500 hover:from-gray-200 hover:to-gray-400'
               "
             >
               <font-awesome-icon
@@ -117,6 +130,7 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useSupabaseClient, navigateTo } from "#imports";
+import Swal from "sweetalert2";
 
 const supabase = useSupabaseClient();
 const isLoading = ref(true);
@@ -177,8 +191,34 @@ const viewSurveyKeys = (id) => {
 };
 
 const confirmDelete = (id) => {
-  selectedSurveyId.value = id;
-  showModal.value = true;
+  Swal.fire({
+    title: "Êtes-vous sûr ?",
+    text: "Cette action est irréversible.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Oui, supprimer",
+    cancelButtonText: "Annuler",
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      await deleteSurvey(id);
+      Swal.fire("Supprimé !", "Le sondage a été supprimé.", "success");
+    }
+  });
+};
+
+const deleteSurvey = async (id) => {
+  try {
+    const { error } = await supabase.from("surveys").delete().eq("id", id);
+    if (error) {
+      console.error("Erreur lors de la suppression du sondage :", error);
+    } else {
+      await fetchSurveys();
+    }
+  } catch (err) {
+    console.error(err);
+  }
 };
 
 const toggleActiveSurvey = async (id, isActive) => {

@@ -1,18 +1,18 @@
 <template>
   <aside
     :class="{ 'w-80': isSidebarOpen, 'w-24': !isSidebarOpen }"
-    class="fixed h-screen bg-white border-r shadow-sm flex flex-col justify-between transition-all duration-300"
+    class="fixed h-screen bg-gray-900 text-white shadow-lg flex flex-col justify-between transition-all duration-300"
   >
     <!-- Sidebar Content -->
     <div class="flex flex-col h-full">
       <!-- App Name -->
-      <div class="p-4 text-center border-b border-gray-200">
+      <div class="p-4 text-center border-b border-gray-700">
         <h1
           :class="{
             'text-xl font-bold': isSidebarOpen,
             'text-lg font-bold': !isSidebarOpen,
           }"
-          class="text-gray-700 cursor-pointer"
+          class="cursor-pointer text-white"
           @click="goToStep(1, '/')"
         >
           Echo
@@ -20,60 +20,41 @@
       </div>
 
       <!-- Navigation Links -->
-      <ul class="text-center space-y-4 mt-6">
-        <li>
+      <ul class="mt-6 space-y-1">
+        <li v-for="link in navLinks" :key="link.path" class="group">
           <div
-            v-tippy="{ content: 'Sondage', placement: 'right' }"
             v-if="!isSidebarOpen"
+            v-tippy="{ content: link.label, placement: 'right' }"
           >
             <button
-              @click="goToStep(1, '/')"
-              class="flex items-center w-full px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
+              @click="goToStep(link.step, link.path)"
+              class="w-full flex items-center justify-center h-12 transition-colors rounded-md group-hover:bg-gray-800"
             >
               <font-awesome-icon
-                :icon="['fas', 'clipboard-list']"
-                class="mx-auto text-2xl"
+                :icon="link.icon"
+                class="text-2xl text-gray-300 group-hover:text-white"
               />
             </button>
           </div>
           <button
             v-else
-            @click="goToStep(1, '/')"
-            class="flex items-center w-full px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
+            @click="goToStep(link.step, link.path)"
+            class="flex items-center px-4 py-3 w-full rounded-md group-hover:bg-gray-800 transition-colors"
           >
-            <font-awesome-icon :icon="['fas', 'clipboard-list']" class="mr-2" />
-            <span class="flex-1 text-left">Sondage</span>
-          </button>
-        </li>
-        <li>
-          <div
-            v-tippy="{ content: 'Admin', placement: 'right' }"
-            v-if="!isSidebarOpen"
-          >
-            <button
-              @click="goToStep(0, '/admin')"
-              class="flex items-center w-full px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
-            >
-              <font-awesome-icon
-                :icon="['fas', 'cogs']"
-                class="mx-auto text-2xl"
-              />
-            </button>
-          </div>
-          <button
-            v-else
-            @click="goToStep(0, '/admin')"
-            class="flex items-center w-full px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
-          >
-            <font-awesome-icon :icon="['fas', 'cogs']" class="mr-2" />
-            <span class="flex-1 text-left">Admin</span>
+            <font-awesome-icon
+              :icon="link.icon"
+              class="text-xl text-gray-300 group-hover:text-white"
+            />
+            <span class="ml-4 text-gray-300 group-hover:text-white">{{
+              link.label
+            }}</span>
           </button>
         </li>
       </ul>
     </div>
 
-    <!-- Score -->
-    <div class="p-4 text-center border-t border-gray-200">
+    <!-- Score Section -->
+    <div class="p-4 text-center border-t border-gray-700">
       <p
         v-if="store.totalPoints !== null"
         :class="[
@@ -81,7 +62,7 @@
             ? 'text-red-500'
             : store.isValidPoints
             ? 'text-green-500'
-            : 'text-black',
+            : 'text-white',
           isSidebarOpen ? 'text-lg font-bold' : 'text-sm font-bold',
         ]"
       >
@@ -89,48 +70,67 @@
       </p>
     </div>
 
-    <!-- Toggle Button -->
-    <div class="p-4 border-t border-gray-200 text-center">
+    <div class="p-4 border-t border-gray-700">
       <div
         v-if="!isSidebarOpen"
         v-tippy="{ content: 'Réduire/Agrandir', placement: 'right' }"
       >
         <button
           @click="$emit('toggle')"
-          class="flex items-center w-full px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold rounded transition-colors"
+          class="w-full flex items-center justify-center h-12 rounded-md bg-gradient-to-r from-teal-500 to-green-500 hover:scale-105 transform transition"
         >
           <font-awesome-icon
             :icon="['fas', 'arrows-alt-h']"
-            class="mx-auto text-2xl"
+            class="text-xl text-white"
           />
         </button>
       </div>
-      <button
-        v-else
-        @click="$emit('toggle')"
-        class="flex items-center w-full px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold rounded transition-colors"
-      >
-        <font-awesome-icon
-          :icon="['fas', 'arrows-alt-h']"
-          class="mr-2 text-xl"
-        />
-        <span class="flex-1 text-left">{{
-          isSidebarOpen ? "Réduire" : "Agrandir"
-        }}</span>
-      </button>
+      <div v-else>
+        <button
+          @click="$emit('toggle')"
+          class="w-full flex items-center h-12 rounded-md bg-gradient-to-r from-teal-500 to-green-500 hover:scale-105 transform transition px-4"
+        >
+          <font-awesome-icon
+            :icon="['fas', 'arrows-alt-h']"
+            class="mr-2 text-xl text-white"
+          />
+          <span class="text-white font-bold">Réduire</span>
+        </button>
+      </div>
     </div>
   </aside>
 </template>
 
 <script setup>
 import { useSurveyStore } from "@/stores/survey";
+import { ref } from "vue";
 
-const store = useSurveyStore();
 defineProps(["isSidebarOpen"]);
 defineEmits(["toggle"]);
+
+const store = useSurveyStore();
+
+const navLinks = ref([
+  {
+    label: "Sondage",
+    path: "/",
+    icon: ["fas", "clipboard-list"],
+    step: 1,
+  },
+  {
+    label: "Admin",
+    path: "/admin",
+    icon: ["fas", "cogs"],
+    step: 0,
+  },
+]);
 
 const goToStep = (step, route) => {
   store.currentStep = step;
   navigateTo(route);
+};
+
+const logout = async () => {
+  navigateTo("/login");
 };
 </script>

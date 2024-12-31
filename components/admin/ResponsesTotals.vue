@@ -13,27 +13,17 @@
     </button>
 
     <!-- Affichage des totaux sous forme de tableau -->
-    <div v-if="showTotals" class="bg-gray-100 p-4 rounded-md shadow mb-6">
+    <div v-if="showTotals" class="bg-white p-4 rounded-md shadow mb-6">
       <h2 class="text-xl font-bold mb-4">Totaux Globaux</h2>
       <div class="overflow-x-auto">
-        <table
-          class="min-w-full table-auto border-collapse border border-gray-200"
-        >
+        <table class="w-full table-auto border-collapse">
           <thead class="bg-gray-100">
             <tr>
-              <th
-                class="border border-gray-200 px-4 py-2 text-left text-gray-700"
-              >
-                Question
-              </th>
-              <th
-                class="border border-gray-200 px-4 py-2 text-left text-gray-700"
-              >
+              <th class="border border-gray-300 px-4 py-2">Question</th>
+              <th class="border border-gray-300 px-4 py-2">
                 Total Pondérations
               </th>
-              <th
-                class="border border-gray-200 px-4 py-2 text-left text-gray-700"
-              >
+              <th class="border border-gray-300 px-4 py-2">
                 Total Évaluations
               </th>
             </tr>
@@ -42,14 +32,15 @@
             <tr
               v-for="(totals, questionId) in combinedTotals"
               :key="questionId"
+              class="hover:bg-gray-50 transition"
             >
-              <td class="border border-gray-200 px-4 py-2 text-gray-800">
+              <td class="border border-gray-300 px-4 py-2">
                 {{ totals.text }}
               </td>
-              <td class="border border-gray-200 px-4 py-2 text-gray-600">
+              <td class="border border-gray-300 px-4 py-2">
                 {{ totals.totalWeights || 0 }}
               </td>
-              <td class="border border-gray-200 px-4 py-2 text-gray-600">
+              <td class="border border-gray-300 px-4 py-2">
                 {{ totals.totalRatings || 0 }}
               </td>
             </tr>
