@@ -158,12 +158,10 @@ onMounted(async () => {
   const surveyId = route.params.id;
 
   try {
-    // Fetch survey by ID
     await store.fetchSurveyById(surveyId);
     surveyTitle.value = store.surveyTitle;
     isLoadingSurvey.value = false;
 
-    // Fetch collaborators
     const { data, error } = await supabase
       .from("collaborators")
       .select("*")
@@ -215,16 +213,12 @@ const sendKeys = async () => {
       return;
     }
 
-    // Generate and save access keys
     const keys = await store.generateAndSendKeys(emails);
 
     for (const key of keys) {
       try {
-        // Send email with the generated key
         await sendEmail(key.email, store.surveyTitle, key.key);
-        console.log(`Email sent to ${key.email} with key ${key.key}`);
 
-        // Update the `is_sent` status in the database
         const { error } = await supabase
           .from("access_keys")
           .update({ is_sent: true })

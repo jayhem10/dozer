@@ -33,7 +33,6 @@
 <script setup>
 defineProps(["response"]);
 
-// Format the date into a readable French format
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString("fr-FR", {
     year: "numeric",
@@ -43,6 +42,4 @@ const formatDate = (date) => {
 };
 </script>
 
-<style scoped>
-/* Custom table styling can be added if needed */
-</style>
+<style scoped></style>

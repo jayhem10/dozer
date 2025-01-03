@@ -1,10 +1,10 @@
+import { access } from "fs";
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 
 export const useSurveyStore = defineStore("survey", () => {
   const client = useSupabaseClient();
 
-  // État principal
   const currentStep = ref(1);
   const questions = ref([]);
   const selectedSurvey = ref(null);
@@ -12,12 +12,11 @@ export const useSurveyStore = defineStore("survey", () => {
   const ratings = ref({});
   const accessKeyId = ref("");
   const accessKeys = ref([]);
-  const surveyId = ref(""); // ID du sondage actif
-  const surveyTitle = ref(""); // Titre du sondage actif
+  const surveyId = ref("");
+  const surveyTitle = ref("");
   const isSubmitted = ref(false);
   const totalPoints = ref(0);
 
-  // Computed properties pour validation
   const isValidPoints = computed(
     () => totalPoints.value >= 102 && totalPoints.value <= 103
   );
@@ -33,8 +32,6 @@ export const useSurveyStore = defineStore("survey", () => {
         typeof ratings.value[q.id] === "number" && ratings.value[q.id] !== null
     )
   );
-
-  // Actions
 
   async function fetchQuestions() {
     try {
@@ -72,7 +69,6 @@ export const useSurveyStore = defineStore("survey", () => {
   }
 
   async function fetchSurveyById(id: string) {
-    console.log("Fetching survey by ID:", id);
     try {
       const { data: survey, error } = await client
         .from("surveys")
@@ -105,7 +101,6 @@ export const useSurveyStore = defineStore("survey", () => {
 
   async function createSurvey(data) {
     try {
-      // Insérer le sondage
       const { data: survey, error: surveyError } = await client
         .from("surveys")
         .insert([{ title: data.title, description: data.description }])
@@ -119,7 +114,6 @@ export const useSurveyStore = defineStore("survey", () => {
       surveyTitle.value = survey.title;
       selectedSurvey.value = { id: survey.id, title: survey.title };
 
-      // Insérer les questions
       const formattedQuestions = data.questions.map((q) => ({
         survey_id: survey.id,
         text: q.text,
@@ -148,7 +142,7 @@ export const useSurveyStore = defineStore("survey", () => {
     ratings.value[questionId] = rating;
   }
 
-  function setAccessKey(id) {
+  function setAccessKey(id: string) {
     accessKeyId.value = id;
   }
 
@@ -199,10 +193,11 @@ export const useSurveyStore = defineStore("survey", () => {
       if (updateError) throw updateError;
 
       isSubmitted.value = true;
-      resetStore();
     } catch (error) {
       console.error("Erreur lors de l'envoi :", error);
       throw error;
+    } finally {
+      resetStore();
     }
   }
 

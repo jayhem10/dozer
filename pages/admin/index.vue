@@ -11,7 +11,6 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <!-- Gestion des sondages -->
       <div
         @click="navigate('/admin/surveys')"
         class="p-4 rounded-md shadow cursor-pointer transition transform hover:scale-105 bg-gradient-to-r from-blue-400 to-blue-500"
@@ -22,7 +21,6 @@
         </p>
       </div>
 
-      <!-- Résultats -->
       <div
         @click="navigate('/admin/results')"
         class="p-4 rounded-md shadow cursor-pointer transition transform hover:scale-105 bg-gradient-to-r from-green-400 to-teal-500"
@@ -31,7 +29,6 @@
         <p class="text-sm text-white">Consulter les résultats des sondages.</p>
       </div>
 
-      <!-- Collaborateurs -->
       <div
         @click="navigate('/admin/collaborators')"
         class="p-4 rounded-md shadow cursor-pointer transition transform hover:scale-105 bg-gradient-to-r from-yellow-400 to-yellow-500"

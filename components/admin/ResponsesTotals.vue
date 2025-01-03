@@ -1,6 +1,5 @@
 <template>
   <div>
-    <!-- Bouton pour basculer l'affichage des totaux -->
     <button
       @click="toggleTotals"
       class="mb-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors"
@@ -67,12 +66,10 @@ const toggleTotals = () => {
   showTotals.value = !showTotals.value;
 };
 
-// Calculer les totaux combinés pour les ratings et weights par question
 const combinedTotals = computed(() => {
   const totals = {};
 
   props.responses.forEach((response) => {
-    // Calculer les totaux pour les ratings
     for (const [questionId, data] of Object.entries(
       response.answers.ratings || {}
     )) {
@@ -86,7 +83,6 @@ const combinedTotals = computed(() => {
       totals[questionId].totalRatings += data.value;
     }
 
-    // Calculer les totaux pour les weights
     for (const [questionId, data] of Object.entries(
       response.answers.weights || {}
     )) {
@@ -106,7 +102,6 @@ const combinedTotals = computed(() => {
 </script>
 
 <style scoped>
-/* Styles pour le tableau */
 table {
   width: 100%;
   border-collapse: collapse;

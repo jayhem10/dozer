@@ -13,7 +13,6 @@ export default async function sendEmail(
       throw new Error("Email service returned an unsuccessful response.");
     }
 
-    console.log(`Email successfully sent to ${recipientEmail}`, response);
     return true;
   } catch (err) {
     console.error(`Error sending email to ${recipientEmail}:`, err.message);

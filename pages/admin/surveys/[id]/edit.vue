@@ -119,16 +119,16 @@ const supabase = useSupabaseClient();
 const route = useRoute();
 const id = route.params.id;
 
-const isLoading = ref(true); // State for loader
+const isLoading = ref(true);
 const title = ref("");
 const description = ref("");
 const questions = ref([]);
-const deletedQuestions = ref([]); // To track deleted questions
+const deletedQuestions = ref([]);
 const errors = ref({});
 
 onMounted(async () => {
   await fetchSurvey();
-  isLoading.value = false; // Stop loader when data is loaded
+  isLoading.value = false;
 });
 
 const fetchSurvey = async () => {
@@ -172,7 +172,7 @@ const addQuestion = () => {
 const removeQuestion = (index) => {
   const question = questions.value[index];
   if (question.id) {
-    deletedQuestions.value.push(question.id); // Add to the list of deleted questions
+    deletedQuestions.value.push(question.id);
   }
   questions.value.splice(index, 1);
 };
@@ -260,7 +260,6 @@ const updateSurvey = async () => {
 };
 
 const backToSurveys = () => {
-  console.log("backToSurveys");
   navigateTo("/admin/surveys");
 };
 </script>

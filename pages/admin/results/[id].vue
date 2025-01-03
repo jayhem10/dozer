@@ -61,7 +61,6 @@ const isLoading = ref(true);
 
 onMounted(async () => {
   try {
-    // Fetch survey details
     const { data: survey, error: surveyError } = await supabase
       .from("surveys")
       .select("title, description")
@@ -78,7 +77,6 @@ onMounted(async () => {
       surveyDescription.value = survey.description;
     }
 
-    // Fetch responses
     const { data: responseData, error: responseError } = await supabase
       .from("responses")
       .select("*")
@@ -106,7 +104,6 @@ const backToResults = () => {
 
 const generateExport = async () => {
   try {
-    // Fetch keys
     const { data: keys, error: keysError } = await supabase
       .from("access_keys")
       .select("id, key, is_used")
@@ -117,10 +114,9 @@ const generateExport = async () => {
       return;
     }
 
-    // Fetch responses
     const { data: responseData, error: responsesError } = await supabase
       .from("responses")
-      .select("access_key_id, answers, submitted_at")
+      .select("answers, submitted_at")
       .eq("survey_id", surveyId);
 
     if (responsesError) {
@@ -131,7 +127,6 @@ const generateExport = async () => {
       return;
     }
 
-    // Calculate global totals for each question
     const globalTotals = {};
     responseData.forEach((response) => {
       const ratings = response.answers.ratings || {};
@@ -161,13 +156,11 @@ const generateExport = async () => {
       });
     });
 
-    // Prepare CSV content
     let csvContent = `"Titre du questionnaire","Description","Nombre de clés","Clés utilisées"\n`;
     csvContent += `"${surveyName.value}","${surveyDescription.value}",${
       keys.length
     },${keys.filter((key) => key.is_used).length}\n\n`;
 
-    // Section for global totals
     csvContent += `"Totaux globaux des questions"\n\n`;
     csvContent += `"Question","Total Rating","Total Weight"\n`;
     Object.values(globalTotals).forEach((total) => {
@@ -175,7 +168,6 @@ const generateExport = async () => {
     });
     csvContent += `\n`;
 
-    // Section for used keys with their responses in table format
     csvContent += `"Clés utilisées et leurs réponses"\n\n`;
 
     keys
@@ -223,7 +215,6 @@ const generateExport = async () => {
       });
 
     const dateTime = new Date().toISOString().replace(/:/g, "-");
-    // Trigger download
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

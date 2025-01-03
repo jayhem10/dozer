@@ -21,6 +21,7 @@ import {
   faUsers,
   faExclamationCircle,
   faPaperPlane,
+  faClipboard,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -43,7 +44,8 @@ library.add(
   faFileExport,
   faUsers,
   faExclamationCircle,
-  faPaperPlane
+  faPaperPlane,
+  faClipboard
 );
 
 config.autoAddCss = false;

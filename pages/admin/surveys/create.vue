@@ -106,19 +106,16 @@ const validateForm = () => {
   errors.value = {};
   let valid = true;
 
-  // Validate title
   if (!title.value.trim()) {
     errors.value.title = "Le titre est requis.";
     valid = false;
   }
 
-  // Validate description
   if (!description.value.trim()) {
     errors.value.description = "La description est requise.";
     valid = false;
   }
 
-  // Validate questions
   questions.value.forEach((question, index) => {
     if (!question.text.trim()) {
       errors.value[`question-${index}`] = `Le texte de la question ${

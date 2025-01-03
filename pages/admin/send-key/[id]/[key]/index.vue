@@ -142,7 +142,6 @@ onMounted(async () => {
   key.value = route.params.key;
 
   try {
-    // Fetch survey by ID
     const { data: survey, error: surveyError } = await supabase
       .from("surveys")
       .select("title")
@@ -154,7 +153,6 @@ onMounted(async () => {
     surveyTitle.value = survey.title;
     isLoadingSurvey.value = false;
 
-    // Fetch collaborators
     const { data: collaboratorData, error: collaboratorError } = await supabase
       .from("collaborators")
       .select("*")
@@ -193,7 +191,6 @@ const sendKey = async () => {
   }
 
   try {
-    // Check if the key has already been sent
     const { data: keyData, error: keyError } = await supabase
       .from("access_keys")
       .select("is_sent")
@@ -208,11 +205,9 @@ const sendKey = async () => {
       return;
     }
 
-    // Send the email
     await sendEmail(collaborator.email, surveyTitle.value, key.value);
     toast.success(`Clé envoyée à ${collaborator.email}`);
 
-    // Update `is_sent` status in the database
     const { error } = await supabase
       .from("access_keys")
       .update({ is_sent: true })

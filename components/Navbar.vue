@@ -129,8 +129,4 @@ const goToStep = (step, route) => {
   store.currentStep = step;
   navigateTo(route);
 };
-
-const logout = async () => {
-  navigateTo("/login");
-};
 </script>

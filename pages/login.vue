@@ -59,7 +59,6 @@ const supabase = useSupabaseClient();
 const session = useSupabaseSession();
 
 if (session.value) {
-  console.log("Utilisateur déjà connecté :", session.value);
   navigateTo("/admin");
 }
 const email = ref("");
@@ -82,10 +81,6 @@ const login = async () => {
     isLoading.value = false;
     return;
   }
-
-  console.log("Connexion réussie :", data);
-
-  console.log("Utilisateur connecté :", session);
 
   isLoading.value = false;
   navigateTo("/admin");

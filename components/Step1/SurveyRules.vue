@@ -40,6 +40,4 @@
   </div>
 </template>
 
-<script setup lang="ts">
-// No additional script logic required for this component
-</script>
+<script setup lang="ts"></script>

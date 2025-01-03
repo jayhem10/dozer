@@ -34,15 +34,12 @@ const supabase = useSupabaseClient();
 const responses = ref([]);
 const isLoading = ref(true);
 
-// Fetch responses based on the provided `surveyId`
 onMounted(async () => {
-  console.log("Survey ID in ResponseList:", surveyId); // Debugging to ensure `surveyId` is received
-
   try {
     const { data, error } = await supabase
       .from("responses")
       .select("*")
-      .eq("survey_id", surveyId) // Use the prop `surveyId` to filter responses
+      .eq("survey_id", surveyId)
       .order("submitted_at", { ascending: false });
 
     if (error) {

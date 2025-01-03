@@ -29,6 +29,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { useSurveyStore } from "@/stores/survey";
 
 const supabase = useSupabaseClient();
 const store = useSurveyStore();
@@ -57,13 +58,12 @@ const validateKey = async () => {
     }
 
     const { id, is_used, survey } = data;
-
     if (is_used) {
       errorMessage.value = "Cette clé a déjà été utilisée.";
     } else if (!survey.is_active) {
       errorMessage.value = "Le sondage associé à cette clé est inactif.";
     } else {
-      store.setAccessKey(id); // Save key in the store
+      store.setAccessKey(id);
       store.nextStep();
     }
   } catch (err) {

@@ -127,6 +127,7 @@ defineEmits(["toggle"]);
 const supabase = useSupabaseClient();
 
 const navLinks = ref([
+  { label: "Sondage", path: "/", icon: ["fas", "clipboard"] },
   {
     label: "Sondages",
     path: "/admin/surveys",
