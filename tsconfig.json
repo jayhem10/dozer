@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["@types/node", "@nuxt/types", "@nuxtjs/supabase"],
+    "paths": {
+      "#supabase": ["./node_modules/@nuxtjs/supabase/dist/runtime/client"]
+    }
+  },
+  "include": [
+    "types/**/*.d.ts",
+    "nuxt.config.ts",
+    "pages/**/*.ts",
+    "components/**/*.ts",
+    "utils/**/*.ts",
+    "./**/*.ts"
+  ],
+
+  "exclude": ["node_modules", ".nuxt", "dist"]
+}
