@@ -87,7 +87,6 @@
         </button>
       </div>
 
-      <!-- Logout -->
       <div
         v-if="!isSidebarOpen"
         v-tippy="{ content: 'Déconnexion', placement: 'right' }"
