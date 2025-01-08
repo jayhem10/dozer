@@ -121,10 +121,10 @@
 <script setup>
 import { ref } from "vue";
 
+const { logout } = useAuthStore();
+
 defineProps(["isSidebarOpen"]);
 defineEmits(["toggle"]);
-
-const supabase = useSupabaseClient();
 
 const navLinks = ref([
   { label: "Sondage", path: "/", icon: ["fas", "clipboard"] },
@@ -143,11 +143,6 @@ const navLinks = ref([
 
 const navigateTo = (path) => {
   window.location.href = path;
-};
-
-const logout = async () => {
-  await supabase.auth.signOut();
-  navigateTo("/login");
 };
 </script>
 

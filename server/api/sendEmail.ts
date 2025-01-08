@@ -4,7 +4,7 @@ import { defineEventHandler, readBody } from "h3";
 export default defineEventHandler(async (event) => {
   const { recipientEmail, surveyTitle, accessKey } = await readBody(event);
 
-  const baseUrl = event.node.req.headers.origin || "http://localhost:3000";
+  const baseUrl = event.node.req.headers.origin || process.env.BASE_URL;
   const homeUrl = `${baseUrl}/`;
 
   const messageHtml = `

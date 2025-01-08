@@ -131,6 +131,7 @@
 import { ref, onMounted, computed } from "vue";
 import { useSupabaseClient, navigateTo } from "#imports";
 import Swal from "sweetalert2";
+import { useToast } from "vue-toastification";
 
 const supabase = useSupabaseClient();
 const isLoading = ref(true);
@@ -140,6 +141,7 @@ const searchText = ref("");
 const hasActiveSurvey = computed(() =>
   surveys.value.some((survey) => survey.is_active)
 );
+const toast = useToast();
 
 onMounted(async () => {
   await fetchSurveys();
@@ -151,7 +153,9 @@ const fetchSurveys = async () => {
     const { data, error } = await supabase
       .from("surveys")
       .select("*")
-      .order("id", { ascending: true });
+      .order("is_active", { ascending: false })
+      .order("title", { ascending: true });
+
     if (error) {
       console.error("Erreur lors de la récupération des sondages :", error);
     } else {
@@ -232,6 +236,7 @@ const toggleActiveSurvey = async (id, isActive) => {
     await supabase.from("surveys").update({ is_active: false }).eq("id", id);
   }
   await fetchSurveys();
+  toast.success(`Sondage ${isActive ? "désactivé" : "activé"} avec succès.`);
 };
 
 const deactivateAll = async () => {
@@ -240,6 +245,7 @@ const deactivateAll = async () => {
     .update({ is_active: false })
     .eq("is_active", true);
   await fetchSurveys();
+  toast.success("Tous les sondages ont été désactivés avec succès.");
 };
 
 const backToAdmin = () => {

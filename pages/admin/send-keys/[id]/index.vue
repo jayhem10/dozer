@@ -85,7 +85,6 @@
         </div>
       </div>
 
-      <!-- Warning if No Collaborator Selected -->
       <p
         v-if="selectedCollaborators.length === 0"
         class="text-sm text-red-500 mt-4 flex items-center"
@@ -104,7 +103,13 @@
         </button>
         <button
           @click="sendKeys"
-          class="flex items-center justify-center bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-md hover:from-green-500 hover:to-green-700 transition"
+          class="flex items-center justify-center text-white px-4 py-2 rounded-md transition"
+          :class="{
+            'bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700':
+              selectedCollaborators.length > 0 && !isSendingKeys,
+            'bg-gray-400 cursor-not-allowed':
+              selectedCollaborators.length === 0 || isSendingKeys,
+          }"
           :disabled="selectedCollaborators.length === 0 || isSendingKeys"
         >
           <div
@@ -120,25 +125,39 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useSurveyStore } from "@/stores/survey";
 import { useSupabaseClient, navigateTo } from "#imports";
 import { useToast } from "vue-toastification";
+
 import sendEmail from "@/utils/emailService";
 
-const toast = useToast();
-const searchQuery = ref("");
-const collaborators = ref([]);
+interface Collaborator {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
 
-const selectedCollaborators = ref([]);
-const surveyTitle = ref("");
-const isLoadingSurvey = ref(true);
-const isLoadingCollaborators = ref(true);
-const isSendingKeys = ref(false);
+interface EmailError {
+  email: string;
+  reason: string;
+}
+
+const searchQuery = ref<string>("");
+const collaborators = ref<Collaborator[]>([]);
+const selectedCollaborators = ref<string[]>([]);
+const surveyTitle = ref<string>("");
+const isLoadingSurvey = ref<boolean>(true);
+const isLoadingCollaborators = ref<boolean>(true);
+const isSendingKeys = ref<boolean>(false);
+const emailErrors = ref<EmailError[]>([]);
+
 const route = useRoute();
 const store = useSurveyStore();
 const supabase = useSupabaseClient();
+const toast = useToast();
 
 const filteredCollaborators = computed(() => {
   if (!searchQuery.value) return collaborators.value;
@@ -155,7 +174,7 @@ const filteredCollaborators = computed(() => {
 });
 
 onMounted(async () => {
-  const surveyId = route.params.id;
+  const surveyId = route.params.id as string;
 
   try {
     await store.fetchSurveyById(surveyId);
@@ -173,7 +192,6 @@ onMounted(async () => {
     isLoadingCollaborators.value = false;
   } catch (err) {
     console.error("Erreur lors du chargement des données :", err);
-    toast.error("Impossible de charger les données. Veuillez réessayer.");
     navigateTo("/admin/surveys");
   }
 });
@@ -190,7 +208,7 @@ const deselectAllCollaborators = () => {
   selectedCollaborators.value = [];
 };
 
-const toggleSelection = (id) => {
+const toggleSelection = (id: string) => {
   if (selectedCollaborators.value.includes(id)) {
     selectedCollaborators.value = selectedCollaborators.value.filter(
       (selectedId) => selectedId !== id
@@ -201,7 +219,13 @@ const toggleSelection = (id) => {
 };
 
 const sendKeys = async () => {
+  if (selectedCollaborators.value.length === 0) {
+    console.error("Aucun collaborateur sélectionné.");
+    return;
+  }
+
   isSendingKeys.value = true;
+  emailErrors.value = [];
 
   const emails = collaborators.value
     .filter((c) => selectedCollaborators.value.includes(c.id))
@@ -209,7 +233,7 @@ const sendKeys = async () => {
 
   try {
     if (emails.length === 0) {
-      toast.error("Aucun collaborateur sélectionné.");
+      console.error("Aucun collaborateur sélectionné.");
       return;
     }
 
@@ -226,29 +250,66 @@ const sendKeys = async () => {
 
         if (error) {
           console.error(
-            `Failed to update is_sent status for key ID ${key.id}:`,
+            `Échec de la mise à jour de la base pour la clé ${key.key}.`,
             error
           );
-          toast.warning(`Échec de la mise à jour pour la clé ${key.key}.`);
-        } else {
-          toast.success(`Email envoyé à ${key.email}`);
+          emailErrors.value.push({
+            email: key.email,
+            reason: "Échec de la mise à jour de la base de données.",
+          });
         }
       } catch (emailError) {
         console.error(
-          `Failed to send email to ${key.email}:`,
-          emailError.message
+          `Erreur lors de l'envoi ou de la mise à jour pour ${key.email}:`,
+          emailError
         );
-        toast.error(`Échec de l'envoi de l'email à ${key.email}`);
+
+        emailErrors.value.push({
+          email: key.email,
+          reason:
+            emailError.message ||
+            "Erreur inconnue lors de l'envoi ou de la mise à jour.",
+        });
       }
     }
 
-    toast.success("Toutes les clés ont été traitées avec succès.");
+    if (emailErrors.value.length > 0) {
+      console.warn(
+        `${emailErrors.value.length} erreurs rencontrées lors de l'envoi.`
+      );
+      await saveErrorsToFile(emailErrors.value);
+    } else {
+      toast.success("Toutes les clés ont été traitées avec succès.");
+    }
   } catch (err) {
-    console.error("Erreur lors de la génération ou de l'envoi des clés :", err);
-    toast.error("Une erreur est survenue. Veuillez réessayer.");
+    console.error("Erreur lors de l'envoi des clés :", err);
+
+    emailErrors.value.push({
+      email: "N/A",
+      reason: err.message || "Erreur inconnue lors de la génération des clés.",
+    });
+
+    await saveErrorsToFile(emailErrors.value);
+
+    toast.error("Le processus a échoué. Veuillez vérifier les erreurs.");
   } finally {
     isSendingKeys.value = false;
+    navigateTo("/admin/surveys");
   }
+};
+
+const saveErrorsToFile = async (errors: EmailError[]) => {
+  const blob = new Blob([JSON.stringify(errors, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "email_errors.json";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 
 const skipSending = () => {

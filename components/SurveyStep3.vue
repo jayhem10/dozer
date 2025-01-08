@@ -129,8 +129,6 @@ const isLoading = ref(true);
 
 onMounted(async () => {
   try {
-    await store.fetchQuestions(); // Charge les questions
-    // Initialiser tous les scores à 0
     store.questions.forEach((q) => {
       if (store.ratings[q.id] === undefined) {
         store.ratings[q.id] = 0;
@@ -139,7 +137,7 @@ onMounted(async () => {
   } catch (error) {
     console.error("Erreur lors du chargement des questions :", error);
   } finally {
-    isLoading.value = false; // Fin du chargement
+    isLoading.value = false;
   }
 });
 

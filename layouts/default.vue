@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-blue-50 flex">
     <!-- Navbar -->
     <Navbar
-      v-if="!isAdmin"
+      v-if="!authStore.isAuthenticated"
       :isSidebarOpen="isSidebarOpen"
       @toggle="toggleSidebar"
     />
@@ -24,16 +24,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import Navbar from "@/components/Navbar.vue";
 import AdminNavbar from "@/components/AdminNavbar.vue";
+import { useAuthStore } from "@/stores/auth";
 
 const isSidebarOpen = ref(true);
-const user = useSupabaseUser();
+const authStore = useAuthStore();
 
 const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value;
 };
-
-const isAdmin = computed(() => !!user.value);
 </script>

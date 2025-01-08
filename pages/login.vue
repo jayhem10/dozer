@@ -5,9 +5,9 @@
       <form @submit.prevent="login" class="space-y-6">
         <!-- Email Field -->
         <div>
-          <label for="email" class="block text-sm font-medium text-gray-700"
-            >Email</label
-          >
+          <label for="email" class="block text-sm font-medium text-gray-700">
+            Email
+          </label>
           <input
             id="email"
             v-model="email"
@@ -19,10 +19,11 @@
           />
         </div>
 
+        <!-- Password Field -->
         <div>
-          <label for="password" class="block text-sm font-medium text-gray-700"
-            >Mot de passe</label
-          >
+          <label for="password" class="block text-sm font-medium text-gray-700">
+            Mot de passe
+          </label>
           <input
             id="password"
             v-model="password"
@@ -34,10 +35,12 @@
           />
         </div>
 
+        <!-- Error Message -->
         <div v-if="errorMessage" class="text-sm text-red-600 text-center">
           {{ errorMessage }}
         </div>
 
+        <!-- Submit Button -->
         <div>
           <button
             type="submit"
@@ -55,12 +58,10 @@
 
 <script setup>
 import { ref } from "vue";
-const supabase = useSupabaseClient();
-const session = useSupabaseSession();
+import { useAuthStore } from "@/stores/auth";
 
-if (session.value) {
-  navigateTo("/admin");
-}
+const supabase = useSupabaseClient();
+
 const email = ref("");
 const password = ref("");
 const isLoading = ref(false);
@@ -81,6 +82,9 @@ const login = async () => {
     isLoading.value = false;
     return;
   }
+
+  const authStore = useAuthStore();
+  await authStore.fetchUser();
 
   isLoading.value = false;
   navigateTo("/admin");

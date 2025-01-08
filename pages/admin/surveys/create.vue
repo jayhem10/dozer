@@ -141,6 +141,8 @@ const addSurvey = async () => {
   } catch (error) {
     console.error("Erreur lors de la création du sondage :", error);
     toast("Impossible de créer le sondage. Veuillez réessayer.");
+  } finally {
+    toast("Sondage créé avec succès !");
   }
 };
 </script>

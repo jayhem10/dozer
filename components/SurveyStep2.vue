@@ -75,7 +75,7 @@
       <div class="mt-8 flex justify-end">
         <button
           :disabled="!canProceed"
-          @click="nextStep"
+          @click="handleNextStep"
           class="px-6 py-2 rounded text-white font-bold transition-all"
           :class="{
             'bg-blue-600 hover:bg-blue-700': canProceed,
@@ -123,17 +123,17 @@ const isLoading = ref(true);
 
 onMounted(async () => {
   try {
-    await store.fetchQuestions(); // Charge les questions
+    await store.fetchQuestions();
     store.questions.forEach((q) => {
       if (store.weights[q.id] === undefined) {
-        store.weights[q.id] = 0; // Initialiser tous les poids à 0
+        store.weights[q.id] = 0;
       }
     });
-    store.calculateTotalPoints(); // Calculer les points initiaux
+    store.calculateTotalPoints();
   } catch (error) {
     console.error("Erreur lors du chargement des questions :", error);
   } finally {
-    isLoading.value = false; // Fin du chargement
+    isLoading.value = false;
   }
 });
 
@@ -152,13 +152,11 @@ const pointsMessage = computed(() => {
   return "";
 });
 
-// Validation bouton
 const canProceed = computed(
   () => store.isValidPoints && store.areAllWeightsSet
 );
 
-// Fonction pour passer à l'étape suivante
-function nextStep() {
+function handleNextStep() {
   store.nextStep();
 }
 </script>

@@ -1,31 +1,54 @@
-import { access } from "fs";
+import { SupabaseClient } from "@supabase/supabase-js";
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 
-export const useSurveyStore = defineStore("survey", () => {
-  const client = useSupabaseClient();
+interface Question {
+  id: string;
+  text: string;
+}
 
-  const currentStep = ref(1);
-  const questions = ref([]);
-  const selectedSurvey = ref(null);
-  const weights = ref({});
-  const ratings = ref({});
-  const accessKeyId = ref("");
-  const accessKeys = ref([]);
-  const surveyId = ref("");
-  const surveyTitle = ref("");
-  const isSubmitted = ref(false);
-  const totalPoints = ref(0);
+interface Survey {
+  id: string;
+  title: string;
+}
+
+interface AccessKey {
+  key: string;
+  id: string;
+  email: string;
+}
+
+interface FormattedAnswer {
+  value: number;
+  text: string;
+}
+
+export const useSurveyStore = defineStore("survey", () => {
+  const client = useSupabaseClient<SupabaseClient>();
+
+  const currentStep = ref<number>(1);
+  const questions = ref<Question[]>([]);
+  const selectedSurvey = ref<Survey | null>(null);
+  const weights = ref<Record<string, number>>({});
+  const ratings = ref<Record<string, number>>({});
+  const accessKeyId = ref<string>("");
+  const accessKeys = ref<AccessKey[]>([]);
+  const surveyId = ref<string>("");
+  const surveyTitle = ref<string>("");
+  const isSubmitted = ref<boolean>(false);
+  const totalPoints = ref<number>(0);
 
   const isValidPoints = computed(
     () => totalPoints.value >= 102 && totalPoints.value <= 103
   );
+
   const areAllWeightsSet = computed(() =>
     questions.value.every(
       (q) =>
         typeof weights.value[q.id] === "number" && weights.value[q.id] !== null
     )
   );
+
   const areAllRatingsSet = computed(() =>
     questions.value.every(
       (q) =>
@@ -33,7 +56,7 @@ export const useSurveyStore = defineStore("survey", () => {
     )
   );
 
-  async function fetchQuestions() {
+  async function fetchQuestions(): Promise<void> {
     try {
       const { data: survey, error: surveyError } = await client
         .from("surveys")
@@ -68,7 +91,7 @@ export const useSurveyStore = defineStore("survey", () => {
     }
   }
 
-  async function fetchSurveyById(id: string) {
+  async function fetchSurveyById(id: string): Promise<void> {
     try {
       const { data: survey, error } = await client
         .from("surveys")
@@ -99,7 +122,11 @@ export const useSurveyStore = defineStore("survey", () => {
     }
   }
 
-  async function createSurvey(data) {
+  async function createSurvey(data: {
+    title: string;
+    description: string;
+    questions: { text: string; type: string }[];
+  }): Promise<void> {
     try {
       const { data: survey, error: surveyError } = await client
         .from("surveys")
@@ -107,8 +134,9 @@ export const useSurveyStore = defineStore("survey", () => {
         .select()
         .single();
 
-      if (surveyError || !survey)
+      if (surveyError || !survey) {
         throw new Error("Erreur lors de la création du sondage.");
+      }
 
       surveyId.value = survey.id;
       surveyTitle.value = survey.title;
@@ -119,58 +147,58 @@ export const useSurveyStore = defineStore("survey", () => {
         text: q.text,
         type: q.type,
       }));
+
       const { error: questionsError } = await client
         .from("questions")
         .insert(formattedQuestions);
 
-      if (questionsError)
+      if (questionsError) {
         throw new Error("Erreur lors de l'enregistrement des questions.");
+      }
 
-      questions.value = formattedQuestions;
+      questions.value = formattedQuestions.map((q) => ({
+        id: q.survey_id,
+        text: q.text,
+      }));
     } catch (error) {
-      console.error("Erreur lors de la création du sondage :", error);
+      console.error(error);
       throw error;
     }
   }
 
-  function setWeight(questionId, weight) {
-    weights.value[questionId] = weight;
-    calculateTotalPoints();
-  }
-
-  function setRating(questionId, rating) {
-    ratings.value[questionId] = rating;
-  }
-
-  function setAccessKey(id: string) {
+  function setAccessKey(id: string): void {
     accessKeyId.value = id;
   }
 
-  function calculateTotalPoints() {
+  function calculateTotalPoints(): void {
     totalPoints.value = Object.values(weights.value).reduce(
-      (sum, weight) => sum + weight * (200 / 39),
+      (sum, weight) => sum + (weight as number) * (200 / 39),
       0
     );
   }
 
-  async function submitSurvey() {
+  async function submitSurvey(): Promise<void> {
     try {
       if (!surveyId.value || !accessKeyId.value) {
         throw new Error("Survey ID ou Access Key ID manquant.");
       }
 
       const formattedAnswers = {
-        ratings: Object.entries(ratings.value).reduce((acc, [id, value]) => {
+        ratings: Object.entries(ratings.value).reduce<
+          Record<string, FormattedAnswer>
+        >((acc, [id, value]) => {
           const question = questions.value.find((q) => q.id === id);
           if (question) {
             acc[id] = { value, text: question.text };
           }
           return acc;
         }, {}),
-        weights: Object.entries(weights.value).reduce((acc, [id, value]) => {
+        weights: Object.entries(weights.value).reduce<
+          Record<string, FormattedAnswer>
+        >((acc, [id, value]) => {
           const question = questions.value.find((q) => q.id === id);
           if (question) {
-            acc[id] = { value, text: question.text };
+            acc[id] = { value: Number(value), text: question.text };
           }
           return acc;
         }, {}),
@@ -178,7 +206,6 @@ export const useSurveyStore = defineStore("survey", () => {
 
       const { error: insertError } = await client.from("responses").insert({
         survey_id: surveyId.value,
-        access_key_id: accessKeyId.value,
         answers: formattedAnswers,
         submitted_at: new Date().toISOString(),
       });
@@ -201,8 +228,10 @@ export const useSurveyStore = defineStore("survey", () => {
     }
   }
 
-  async function generateAndSendKeys(emails) {
-    if (!surveyId.value) throw new Error("ID du sondage manquant.");
+  async function generateAndSendKeys(emails: string[]): Promise<AccessKey[]> {
+    if (!surveyId.value) {
+      throw new Error("ID du sondage manquant.");
+    }
 
     try {
       const keys = emails.map((email) => ({
@@ -219,7 +248,10 @@ export const useSurveyStore = defineStore("survey", () => {
         .select("key, id");
 
       if (dbError) {
-        console.error("Database insertion error:", dbError);
+        console.error(
+          "Erreur lors de l'enregistrement des clés d'accès :",
+          dbError
+        );
         throw new Error("Erreur lors de l'enregistrement des clés d'accès.");
       }
 
@@ -233,11 +265,11 @@ export const useSurveyStore = defineStore("survey", () => {
     }
   }
 
-  function nextStep() {
+  function nextStep(): void {
     if (currentStep.value < 4) currentStep.value++;
   }
 
-  function resetStore() {
+  function resetStore(): void {
     surveyId.value = "";
     surveyTitle.value = "";
     questions.value = [];
@@ -268,8 +300,6 @@ export const useSurveyStore = defineStore("survey", () => {
     fetchQuestions,
     fetchSurveyById,
     createSurvey,
-    setWeight,
-    setRating,
     setAccessKey,
     calculateTotalPoints,
     submitSurvey,
