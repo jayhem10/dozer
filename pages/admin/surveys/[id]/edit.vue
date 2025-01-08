@@ -115,6 +115,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useSupabaseClient, useRoute } from "#imports";
+import { navigateTo } from "nuxt/app";
 
 const supabase = useSupabaseClient();
 const route = useRoute();

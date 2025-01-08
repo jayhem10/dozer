@@ -41,6 +41,8 @@
 </template>
 
 <script setup lang="ts">
+import { navigateTo } from "nuxt/app";
+
 const supabase = useSupabaseClient();
 
 const logout = async () => {
@@ -48,7 +50,7 @@ const logout = async () => {
   navigateTo("/login");
 };
 
-const navigate = (route) => {
+const navigate = (route: string) => {
   navigateTo(route);
 };
 </script>

@@ -233,6 +233,7 @@ const toggleActiveSurvey = async (id, isActive) => {
       .eq("is_active", true);
     await supabase.from("surveys").update({ is_active: true }).eq("id", id);
   } else {
+    openAddModal;
     await supabase.from("surveys").update({ is_active: false }).eq("id", id);
   }
   await fetchSurveys();

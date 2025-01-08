@@ -15,7 +15,9 @@
 </template>
 
 <script setup lang="ts">
+import { navigateTo } from "nuxt/app";
 import SurveyCard from "./SurveyCard.vue";
+
 defineProps({
   surveys: {
     type: Array,
