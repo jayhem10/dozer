@@ -1,24 +1,25 @@
 {
   "compilerOptions": {
+    "baseUrl": ".", // Set the base directory
+    "paths": {
+      "@/types/*": ["types/*"],
+      "@/types": ["types"]
+    },
+    "strict": true,
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Node",
-    "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["@types/node", "@nuxt/types", "@nuxtjs/supabase"],
-    "paths": {
-      "#supabase": ["./node_modules/@nuxtjs/supabase/dist/runtime/client"]
-    }
+    "types": ["@types/node", "@nuxt/types", "@nuxtjs/supabase"]
   },
   "include": [
-    "types/**/*.d.ts",
+    "types/**/*.ts",
     "nuxt.config.ts",
     "pages/**/*.ts",
     "components/**/*.ts",
     "utils/**/*.ts",
     "./**/*.ts"
   ],
-
   "exclude": ["node_modules", ".nuxt", "dist"]
 }

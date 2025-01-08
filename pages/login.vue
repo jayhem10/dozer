@@ -1,5 +1,7 @@
 <template>
-  <div class="flex items-center justify-center min-h-screen bg-blues-50">
+  <div
+    class="flex items-center justify-center h-screen bg-blue-50 overflow-hidden"
+  >
     <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
       <h1 class="text-2xl font-bold text-gray-800 text-center">Connexion</h1>
       <form @submit.prevent="login" class="space-y-6">
@@ -56,7 +58,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from "vue";
 import { useAuthStore } from "@/stores/auth";
 

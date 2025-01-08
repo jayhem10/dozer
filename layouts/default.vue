@@ -1,6 +1,5 @@
 <template>
-  <div class="min-h-screen bg-blue-50 flex">
-    <!-- Navbar -->
+  <div class="h-screen bg-blue-50 flex overflow-hidden">
     <Navbar
       v-if="!authStore.isAuthenticated"
       :isSidebarOpen="isSidebarOpen"
@@ -14,16 +13,16 @@
 
     <main
       :class="{ 'ml-64': isSidebarOpen, 'ml-20': !isSidebarOpen }"
-      class="flex-1"
+      class="flex-1 overflow-auto"
     >
-      <div class="max-w-4xl mx-auto py-8">
+      <div class="max-w-4xl mx-auto">
         <NuxtPage />
       </div>
     </main>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from "vue";
 import Navbar from "@/components/Navbar.vue";
 import AdminNavbar from "@/components/AdminNavbar.vue";

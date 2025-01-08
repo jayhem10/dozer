@@ -1,6 +1,5 @@
 <template>
-  <div class="max-w-4xl mx-auto p-6">
-    <!-- Loader for Survey Title -->
+  <div class="max-w-4xl mx-auto p-6 mt-10">
     <h1 v-if="isLoadingSurvey" class="text-2xl font-bold mb-6">
       Chargement du sondage...
     </h1>
@@ -8,7 +7,6 @@
       Envoyer des clés d'accès pour {{ surveyTitle }}
     </h1>
 
-    <!-- Loader for Collaborators -->
     <div
       v-if="isLoadingCollaborators"
       class="flex justify-center items-center h-64"
@@ -18,9 +16,7 @@
       ></div>
     </div>
 
-    <!-- Main Content -->
     <div v-else>
-      <!-- Search Bar -->
       <div class="relative mb-4">
         <input
           v-model="searchQuery"
@@ -92,8 +88,6 @@
         <font-awesome-icon :icon="['fas', 'exclamation-circle']" class="mr-2" />
         Veuillez sélectionner au moins un collaborateur.
       </p>
-
-      <!-- Buttons -->
       <div class="flex justify-between mt-6">
         <button
           @click="skipSending"

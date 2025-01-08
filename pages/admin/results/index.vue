@@ -1,15 +1,15 @@
 <template>
-  <div class="max-w-4xl mx-auto p-6">
+  <div class="max-w-4xl mx-auto p-6 mt-10">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold">Résultats des sondages</h1>
       <button
+        v-tippy="'Retour'"
         @click="backToAdmin"
         class="bg-gray-500 text-white px-4 py-2 rounded-md shadow hover:bg-gray-600 transition"
       >
         <font-awesome-icon :icon="['fas', 'arrow-left']" />
       </button>
     </div>
-    <!-- Search Bar -->
     <div class="relative mb-4">
       <input
         v-model="searchQuery"
@@ -27,12 +27,11 @@
       </button>
     </div>
 
-    <!-- Results List -->
     <ResultsList :surveys="filteredSurveys" :isLoading="isLoading" />
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from "vue";
 import { useSupabaseClient } from "#imports";
 import ResultsList from "@/components/admin/ResultsList.vue";

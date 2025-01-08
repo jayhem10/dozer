@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-4xl mx-auto p-6">
+  <div class="max-w-4xl mx-auto p-6 mt-10">
     <div v-if="isLoading" class="flex justify-center items-center h-64">
       <div
         class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
@@ -10,6 +10,7 @@
         <h1 class="text-2xl font-bold">Modifier le sondage</h1>
         <button
           @click="backToSurveys"
+          v-tippy="'Retour'"
           class="bg-gray-500 text-white px-4 py-2 rounded-md shadow hover:bg-gray-600 transition"
         >
           <font-awesome-icon :icon="['fas', 'arrow-left']" />
@@ -111,7 +112,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useSupabaseClient, useRoute } from "#imports";
 

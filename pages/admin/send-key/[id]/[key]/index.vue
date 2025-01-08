@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-4xl mx-auto p-6">
+  <div class="max-w-4xl mx-auto p-6 mt-10">
     <!-- Header with Retour Button -->
     <div class="flex justify-between items-center mb-6">
       <h1 v-if="isLoadingSurvey" class="text-2xl font-bold">
@@ -105,7 +105,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useSupabaseClient, useRoute, navigateTo } from "#imports";
 import { useToast } from "vue-toastification";

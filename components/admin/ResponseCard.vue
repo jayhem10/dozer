@@ -30,7 +30,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 defineProps(["response"]);
 
 const formatDate = (date) => {

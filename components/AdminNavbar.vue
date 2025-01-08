@@ -118,9 +118,7 @@
   </aside>
 </template>
 
-<script setup>
-import { ref } from "vue";
-
+<script setup lang="ts">
 const { logout } = useAuthStore();
 
 defineProps(["isSidebarOpen"]);

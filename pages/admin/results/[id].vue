@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-4xl mx-auto p-6">
+  <div class="max-w-4xl mx-auto p-6 mt-10">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold">{{ surveyName }}</h1>
       <div class="flex space-x-4">
@@ -11,6 +11,7 @@
           Exporter en CSV
         </button>
         <button
+          v-tippy="'Retour'"
           @click="backToResults"
           class="bg-gray-500 text-white px-4 py-2 rounded-md shadow hover:bg-gray-600 transition"
         >
@@ -43,7 +44,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from "vue";
 import ResponsesTotals from "@/components/admin/ResponsesTotals.vue";
 import ResponseCard from "@/components/admin/ResponseCard.vue";

@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-4xl mx-auto p-6">
+  <div class="max-w-4xl mx-auto p-6 mt-10">
     <h1 class="text-2xl font-bold mb-6">Créer un sondage</h1>
     <form @submit.prevent="addSurvey">
       <div class="mb-4">
@@ -84,7 +84,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from "vue";
 import { useSurveyStore } from "@/stores/survey";
 import { navigateTo } from "#imports";

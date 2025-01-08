@@ -1,12 +1,11 @@
 <template>
-  <div class="max-w-4xl mx-auto p-6">
+  <div class="max-w-4xl mx-auto p-6 mt-10">
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold">Collaborateurs</h1>
       <div class="flex space-x-4">
-        <!-- Add Collaborator Button -->
         <button
-          v-tippy="{ content: 'Ajouter un collaborateur', placement: 'bottom' }"
+          v-tippy="'Ajouter un collaborateur'"
           @click="openAddModal"
           class="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2 rounded-md shadow hover:from-blue-500 hover:to-blue-700 transition"
         >
@@ -14,7 +13,7 @@
         </button>
         <!-- Back Button -->
         <button
-          v-tippy="{ content: 'Retour', placement: 'bottom' }"
+          v-tippy="'Retour'"
           @click="backToAdmin"
           class="bg-gradient-to-r from-gray-400 to-gray-600 text-white px-4 py-2 rounded-md shadow hover:from-gray-500 hover:to-gray-700 transition"
         >
@@ -92,7 +91,7 @@
             <td class="border border-gray-300 px-4 py-2 text-center">
               <button
                 @click="confirmDelete(collaborator.id)"
-                v-tippy="{ content: 'Supprimer', placement: 'bottom' }"
+                v-tippy="'Supprimer'"
                 class="bg-gradient-to-r from-red-400 to-red-600 text-white px-3 py-1 rounded-md shadow hover:from-red-500 hover:to-red-700 transition"
               >
                 <font-awesome-icon :icon="['fas', 'trash']" />
@@ -102,81 +101,22 @@
         </tbody>
       </table>
     </div>
-
-    <!-- Add Collaborator Modal -->
-    <div
-      v-if="isAddModalOpen"
-      class="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center"
-    >
-      <div class="bg-white p-6 rounded-md shadow-lg">
-        <h2 class="text-lg font-bold mb-4">Ajouter un collaborateur</h2>
-        <form @submit.prevent="addCollaborator">
-          <div class="mb-4">
-            <label
-              for="firstName"
-              class="block text-sm font-medium text-gray-700"
-              >Prénom</label
-            >
-            <input
-              id="firstName"
-              v-model="newCollaborator.first_name"
-              type="text"
-              class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-              required
-            />
-          </div>
-          <div class="mb-4">
-            <label
-              for="lastName"
-              class="block text-sm font-medium text-gray-700"
-              >Nom</label
-            >
-            <input
-              id="lastName"
-              v-model="newCollaborator.last_name"
-              type="text"
-              class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-              required
-            />
-          </div>
-          <div class="mb-4">
-            <label for="email" class="block text-sm font-medium text-gray-700"
-              >Email</label
-            >
-            <input
-              id="email"
-              v-model="newCollaborator.email"
-              type="email"
-              class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-              required
-            />
-          </div>
-          <div class="flex justify-end space-x-4">
-            <button
-              @click="isAddModalOpen = false"
-              type="button"
-              class="bg-gradient-to-r from-red-300 to-red-500 text-white px-4 py-2 rounded-md shadow hover:from-red-400 hover:to-red-600 transition"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              class="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2 rounded-md shadow hover:from-blue-500 hover:to-blue-700 transition"
-            >
-              Sauvegarder
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <CollaboratorModalComponent
+      :isOpen="isAddModalOpen"
+      :collaborator="newCollaborator"
+      @close="isAddModalOpen = false"
+      @save="addCollaborator"
+    />
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { useSupabaseClient, navigateTo } from "#imports";
-import Swal from "sweetalert2";
+import { navigateTo } from "nuxt/app";
 import { useToast } from "vue-toastification";
+import Swal from "sweetalert2";
+import { Collaborator } from "@/types";
+import CollaboratorModalComponent from "@/components/admin/CollaboratorModalComponent.vue";
 
 const supabase = useSupabaseClient();
 const toast = useToast();
@@ -186,12 +126,11 @@ const isLoading = ref(true);
 const isAddModalOpen = ref(false);
 const newCollaborator = ref({ first_name: "", last_name: "", email: "" });
 const searchText = ref("");
-const selectedCollaboratorId = ref(null);
 
 const filteredCollaborators = computed(() => {
   if (!searchText.value) return collaborators.value;
   return collaborators.value.filter(
-    (collaborator) =>
+    (collaborator: Collaborator) =>
       collaborator.first_name
         .toLowerCase()
         .includes(searchText.value.toLowerCase()) ||
@@ -236,7 +175,11 @@ const addCollaborator = async () => {
       .insert([newCollaborator.value]);
     if (error) {
       console.error("Erreur lors de l'ajout :", error);
-      toast.error("Erreur lors de l'ajout du collaborateur.");
+      if (error.code === "23505") {
+        toast.error("Cet email est déjà utilisé. Veuillez modifier l'email.");
+      } else {
+        toast.error("Erreur lors de l'ajout du collaborateur.");
+      }
     } else {
       toast.success("Collaborateur ajouté avec succès.");
       isAddModalOpen.value = false;
@@ -248,7 +191,7 @@ const addCollaborator = async () => {
   }
 };
 
-const updateCollaborator = async (collaborator) => {
+const updateCollaborator = async (collaborator: Collaborator) => {
   try {
     const { error } = await supabase
       .from("collaborators")
@@ -261,7 +204,11 @@ const updateCollaborator = async (collaborator) => {
 
     if (error) {
       console.error("Erreur lors de la mise à jour :", error);
-      toast.error("Erreur lors de la mise à jour du collaborateur.");
+      if (error.code === "23505") {
+        toast.error("Cet email est déjà utilisé.");
+      } else {
+        toast.error("Erreur lors de la mise à jour du collaborateur.");
+      }
     } else {
       toast.success("Collaborateur mis à jour avec succès.");
     }
@@ -271,7 +218,7 @@ const updateCollaborator = async (collaborator) => {
   }
 };
 
-const confirmDelete = (id) => {
+const confirmDelete = (id: string) => {
   Swal.fire({
     title: "Êtes-vous sûr ?",
     text: "Cette action est irréversible.",
@@ -289,7 +236,7 @@ const confirmDelete = (id) => {
   });
 };
 
-const deleteCollaborator = async (id) => {
+const deleteCollaborator = async (id: string) => {
   try {
     const { error } = await supabase
       .from("collaborators")

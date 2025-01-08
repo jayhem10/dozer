@@ -101,7 +101,7 @@
   </aside>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useSurveyStore } from "@/stores/survey";
 import { ref } from "vue";
 
