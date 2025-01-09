@@ -15,7 +15,7 @@
           class="cursor-pointer text-white"
           @click="navigateTo('/admin')"
         >
-          Echo
+          Dozer
         </h1>
         <h2 v-if="isSidebarOpen" class="text-sm text-gray-400">Admin</h2>
       </div>

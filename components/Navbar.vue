@@ -15,7 +15,7 @@
           class="cursor-pointer text-white"
           @click="goToStep(1, '/')"
         >
-          Echo
+          Dozer
         </h1>
       </div>
 
