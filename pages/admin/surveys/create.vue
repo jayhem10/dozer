@@ -16,6 +16,7 @@
           {{ errors.title }}
         </p>
       </div>
+
       <div class="mb-4">
         <label for="description" class="block text-sm font-medium text-gray-700"
           >Description</label
@@ -30,6 +31,44 @@
           {{ errors.description }}
         </p>
       </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700"
+          >Multiplicateur de points</label
+        >
+        <div class="flex items-center mt-2">
+          <label class="flex items-center mr-4">
+            <input
+              type="radio"
+              v-model="useDefaultMultiplier"
+              :value="true"
+              class="mr-2"
+            />
+            Par défaut ({{ defaultMultiplier.toFixed(2) }})
+          </label>
+          <label class="flex items-center">
+            <input
+              type="radio"
+              v-model="useDefaultMultiplier"
+              :value="false"
+              class="mr-2"
+            />
+            Personnalisé
+          </label>
+        </div>
+        <div v-if="!useDefaultMultiplier" class="mt-2">
+          <input
+            v-model="customMultiplier"
+            type="text"
+            placeholder="Ex : 239/20 ou 5.25"
+            class="mt-1 block w-full p-2 border border-gray-300 rounded"
+          />
+          <p v-if="errors.customMultiplier" class="text-red-500 text-sm mt-1">
+            {{ errors.customMultiplier }}
+          </p>
+        </div>
+      </div>
+
       <h2 class="text-lg font-semibold mb-4">Questions</h2>
       <div
         v-for="(question, index) in questions"
@@ -64,6 +103,7 @@
           <option value="rating">Évaluation</option>
         </select>
       </div>
+
       <div class="flex justify-between items-center mt-4">
         <button
           type="button"
@@ -86,11 +126,18 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { useSurveyStore } from "@/stores/survey";
-import { navigateTo } from "#imports";
 import { useToast } from "vue-toastification";
+import { evaluate } from "mathjs";
+import { navigateTo } from "#imports";
+
+import { useSurveyStore } from "@/stores/survey";
+import { POINT_MULTIPLIER } from "@/constants/survey";
 
 const toast = useToast();
+
+const defaultMultiplier = POINT_MULTIPLIER;
+const useDefaultMultiplier = ref(true);
+const customMultiplier = ref("");
 
 const title = ref("");
 const description = ref("");
@@ -100,7 +147,7 @@ const errors = ref({});
 const store = useSurveyStore();
 
 const addQuestion = () => questions.value.push({ text: "", type: "weighting" });
-const removeQuestion = (index) => questions.value.splice(index, 1);
+const removeQuestion = (index: number) => questions.value.splice(index, 1);
 
 const validateForm = () => {
   errors.value = {};
@@ -114,6 +161,19 @@ const validateForm = () => {
   if (!description.value.trim()) {
     errors.value.description = "La description est requise.";
     valid = false;
+  }
+
+  if (!useDefaultMultiplier.value) {
+    try {
+      if (!customMultiplier.value.trim()) {
+        throw new Error();
+      }
+      evaluate(customMultiplier.value);
+    } catch (error) {
+      errors.value.customMultiplier =
+        "Le multiplicateur personnalisé est invalide. Saisissez une valeur ou un calcul valide.";
+      valid = false;
+    }
   }
 
   questions.value.forEach((question, index) => {
@@ -132,17 +192,22 @@ const addSurvey = async () => {
   if (!validateForm()) return;
 
   try {
+    const pointMultiplier = useDefaultMultiplier.value
+      ? defaultMultiplier
+      : evaluate(String(customMultiplier.value).trim());
+
     await store.createSurvey({
       title: title.value,
       description: description.value,
       questions: questions.value,
+      point_multiplier: pointMultiplier,
     });
+
     navigateTo(`/admin/send-keys/${store.surveyId}`);
+    toast("Sondage créé avec succès !");
   } catch (error) {
     console.error("Erreur lors de la création du sondage :", error);
     toast("Impossible de créer le sondage. Veuillez réessayer.");
-  } finally {
-    toast("Sondage créé avec succès !");
   }
 };
 </script>

@@ -23,7 +23,6 @@
     <div v-if="responses && responses.length > 0">
       <ResponsesTotals :responses="responses" />
     </div>
-    <!-- List of Responses -->
     <div v-if="isLoading" class="flex justify-center items-center h-64">
       <div
         class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
@@ -117,7 +116,7 @@ const generateExport = async () => {
 
     const { data: responseData, error: responsesError } = await supabase
       .from("responses")
-      .select("answers, submitted_at")
+      .select("id, answers, submitted_at")
       .eq("survey_id", surveyId);
 
     if (responsesError) {
@@ -128,93 +127,91 @@ const generateExport = async () => {
       return;
     }
 
-    const globalTotals = {};
+    // Initialisation des totaux globaux
+    const globalTotals = {
+      ratings: {},
+      weights: {},
+    };
+
+    // Construire l'en-tête CSV
+    const questionIds = new Set();
+    const questionLabels = {};
     responseData.forEach((response) => {
       const ratings = response.answers.ratings || {};
       const weights = response.answers.weights || {};
 
       Object.keys({ ...ratings, ...weights }).forEach((questionId) => {
-        const questionText =
+        questionIds.add(questionId);
+        questionLabels[questionId] =
           ratings[questionId]?.text ||
           weights[questionId]?.text ||
           "Question inconnue";
 
-        if (!globalTotals[questionId]) {
-          globalTotals[questionId] = {
-            text: questionText,
-            totalRating: 0,
-            totalWeight: 0,
-          };
+        if (!globalTotals.ratings[questionId]) {
+          globalTotals.ratings[questionId] = 0;
+        }
+        if (!globalTotals.weights[questionId]) {
+          globalTotals.weights[questionId] = 0;
         }
 
-        if (ratings[questionId]?.value) {
-          globalTotals[questionId].totalRating += ratings[questionId].value;
-        }
-
-        if (weights[questionId]?.value) {
-          globalTotals[questionId].totalWeight += weights[questionId].value;
-        }
+        globalTotals.ratings[questionId] += ratings[questionId]?.value || 0;
+        globalTotals.weights[questionId] += weights[questionId]?.value || 0;
       });
     });
 
-    let csvContent = `"Titre du questionnaire","Description","Nombre de clés","Clés utilisées"\n`;
-    csvContent += `"${surveyName.value}","${surveyDescription.value}",${
-      keys.length
-    },${keys.filter((key) => key.is_used).length}\n\n`;
+    const sortedQuestionIds = Array.from(questionIds).sort();
 
-    csvContent += `"Totaux globaux des questions"\n\n`;
-    csvContent += `"Question","Total Rating","Total Weight"\n`;
-    Object.values(globalTotals).forEach((total) => {
-      csvContent += `"${total.text}","${total.totalRating}","${total.totalWeight}"\n`;
+    // Section pour le mapping des colonnes dans une seule colonne
+    let csvContent = `"Question"\n`;
+    sortedQuestionIds.forEach((id, index) => {
+      csvContent += `"${index + 1}: ${questionLabels[id]}"\n`;
     });
     csvContent += `\n`;
 
-    csvContent += `"Clés utilisées et leurs réponses"\n\n`;
+    // En-têtes du tableau principal avec chaque paire Pondération/Note
+    csvContent += `"ID de réponse","${sortedQuestionIds
+      .flatMap((_, index) => [`Pondération ${index + 1}`, `Note ${index + 1}`])
+      .join('","')}"\n`;
 
-    keys
-      .filter((key) => key.is_used)
-      .forEach((key) => {
-        csvContent += `Clé: ${key.key}\n`;
-        csvContent += `"Question","Rating","Weight"\n`;
+    // Ajout des données des réponses
+    responseData.forEach((response) => {
+      const ratings = response.answers.ratings || {};
+      const weights = response.answers.weights || {};
 
-        const responsesForKey = responseData.filter(
-          (response) => response.access_key_id === key.id
-        );
+      const values = sortedQuestionIds
+        .map((id) => [
+          weights[id]?.value !== undefined ? weights[id].value : 0,
+          ratings[id]?.value !== undefined ? ratings[id].value : 0,
+        ])
+        .flat();
 
-        if (responsesForKey.length === 0) {
-          csvContent += `Aucune réponse enregistrée pour cette clé.\n\n`;
-        } else {
-          responsesForKey.forEach((response) => {
-            const ratings = response.answers.ratings || {};
-            const weights = response.answers.weights || {};
-            const allQuestions = Object.keys({
-              ...ratings,
-              ...weights,
-            });
+      csvContent += `"${response.id}","${values.join('","')}"\n`;
+    });
 
-            allQuestions.forEach((questionId) => {
-              const rating = ratings[questionId]?.value || "";
-              const weight = weights[questionId]?.value || "";
-              const questionText =
-                ratings[questionId]?.text ||
-                weights[questionId]?.text ||
-                "Question inconnue";
+    // Ajout des totaux globaux pour chaque paire Pondération/Note
+    const totalValues = sortedQuestionIds
+      .map((id) => [
+        globalTotals.weights[id] || 0,
+        globalTotals.ratings[id] || 0,
+      ])
+      .flat();
 
-              csvContent += `"${questionText}","${rating}","${weight}"\n`;
-            });
-          });
-        }
+    csvContent += `"Totaux globaux","${totalValues.join('","')}"\n\n`;
 
-        csvContent += `\n`;
-      });
-
-    csvContent += `"Clés non utilisées"\n\n`;
+    // Ajout des clés non utilisées
+    csvContent += `"Clés non utilisées"\n`;
     keys
       .filter((key) => !key.is_used)
       .forEach((key) => {
-        csvContent += `Clé: ${key.key}\n`;
+        csvContent += `"${key.key}"\n`;
       });
 
+    csvContent += `\n"Nombre total de clés: ${keys.length}"\n`;
+    csvContent += `"Nombre de clés non utilisées: ${
+      keys.filter((key) => !key.is_used).length
+    }"\n`;
+
+    // Générer et télécharger le fichier CSV
     const dateTime = new Date().toISOString().replace(/:/g, "-");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

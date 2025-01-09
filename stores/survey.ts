@@ -126,11 +126,18 @@ export const useSurveyStore = defineStore("survey", () => {
     title: string;
     description: string;
     questions: { text: string; type: string }[];
+    point_multiplier: number;
   }): Promise<void> {
     try {
       const { data: survey, error: surveyError } = await client
         .from("surveys")
-        .insert([{ title: data.title, description: data.description }])
+        .insert([
+          {
+            title: data.title,
+            description: data.description,
+            point_multiplier: data.point_multiplier,
+          },
+        ])
         .select()
         .single();
 
