@@ -3,9 +3,7 @@
     :class="{ 'w-80': isSidebarOpen, 'w-24': !isSidebarOpen }"
     class="fixed h-screen bg-gray-900 text-white flex flex-col justify-between shadow-md transition-all duration-300"
   >
-    <!-- Sidebar Content -->
     <div class="flex flex-col h-full">
-      <!-- Admin App Name -->
       <div class="p-4 text-center border-b border-gray-700">
         <h1
           :class="{
@@ -56,7 +54,6 @@
     </div>
 
     <div class="p-4 border-t border-gray-700">
-      <!-- Toggle Sidebar -->
       <div
         v-if="!isSidebarOpen"
         v-tippy="{
