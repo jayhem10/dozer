@@ -127,13 +127,11 @@ const generateExport = async () => {
       return;
     }
 
-    // Initialisation des totaux globaux
     const globalTotals = {
       ratings: {},
       weights: {},
     };
 
-    // Construire l'en-tête CSV
     const questionIds = new Set();
     const questionLabels = {};
     responseData.forEach((response) => {
@@ -161,19 +159,16 @@ const generateExport = async () => {
 
     const sortedQuestionIds = Array.from(questionIds).sort();
 
-    // Section pour le mapping des colonnes dans une seule colonne
     let csvContent = `"Question"\n`;
     sortedQuestionIds.forEach((id, index) => {
       csvContent += `"${index + 1}: ${questionLabels[id]}"\n`;
     });
     csvContent += `\n`;
 
-    // En-têtes du tableau principal avec chaque paire Pondération/Note
     csvContent += `"ID de réponse","${sortedQuestionIds
       .flatMap((_, index) => [`Pondération ${index + 1}`, `Note ${index + 1}`])
       .join('","')}"\n`;
 
-    // Ajout des données des réponses
     responseData.forEach((response) => {
       const ratings = response.answers.ratings || {};
       const weights = response.answers.weights || {};
@@ -188,7 +183,6 @@ const generateExport = async () => {
       csvContent += `"${response.id}","${values.join('","')}"\n`;
     });
 
-    // Ajout des totaux globaux pour chaque paire Pondération/Note
     const totalValues = sortedQuestionIds
       .map((id) => [
         globalTotals.weights[id] || 0,
@@ -198,7 +192,6 @@ const generateExport = async () => {
 
     csvContent += `"Totaux globaux","${totalValues.join('","')}"\n\n`;
 
-    // Ajout des clés non utilisées
     csvContent += `"Clés non utilisées"\n`;
     keys
       .filter((key) => !key.is_used)
@@ -211,7 +204,6 @@ const generateExport = async () => {
       keys.filter((key) => !key.is_used).length
     }"\n`;
 
-    // Générer et télécharger le fichier CSV
     const dateTime = new Date().toISOString().replace(/:/g, "-");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

@@ -14,7 +14,6 @@
       </button>
     </div>
 
-    <!-- Search and Filters -->
     <div class="flex justify-between items-center mb-4 space-x-4">
       <input
         v-model="searchQuery"
@@ -33,7 +32,6 @@
       </select>
     </div>
 
-    <!-- Key Statistics -->
     <div class="flex justify-between items-center mb-4">
       <div class="text-gray-800">
         <p class="text-lg font-semibold">
@@ -54,16 +52,20 @@
       </button>
     </div>
 
-    <!-- Loading Spinner -->
     <div v-if="isLoading" class="flex justify-center items-center h-64">
       <div
         class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
       ></div>
     </div>
 
-    <!-- Key Table -->
     <div v-else>
-      <div class="bg-white shadow rounded-md overflow-hidden">
+      <div
+        v-if="filteredKeys.length === 0"
+        class="text-center py-16 text-gray-500"
+      >
+        <p class="text-lg">Aucune clé disponible.</p>
+      </div>
+      <div v-else class="bg-white shadow rounded-md overflow-hidden">
         <table class="w-full table-auto border-collapse">
           <thead class="bg-gray-900 text-white">
             <tr>
@@ -73,6 +75,7 @@
               <th class="border border-gray-300 px-4 py-2">Actions</th>
             </tr>
           </thead>
+
           <tbody>
             <tr
               v-for="key in filteredKeys"

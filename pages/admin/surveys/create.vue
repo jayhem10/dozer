@@ -1,6 +1,17 @@
 <template>
   <div class="max-w-4xl mx-auto p-6 mt-10">
-    <h1 class="text-2xl font-bold mb-6">Créer un sondage</h1>
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold mb-6">Créer un sondage</h1>
+
+      <button
+        v-tippy="'Retour'"
+        @click="backToSurveys"
+        class="bg-gradient-to-r from-gray-400 to-gray-600 text-white px-4 py-2 rounded-md shadow hover:from-gray-500 hover:to-gray-700 transition"
+      >
+        <font-awesome-icon :icon="['fas', 'arrow-left']" />
+      </button>
+    </div>
+
     <form @submit.prevent="addSurvey">
       <div class="mb-4">
         <label for="title" class="block text-sm font-medium text-gray-700"
@@ -202,12 +213,16 @@ const addSurvey = async () => {
       questions: questions.value,
       point_multiplier: pointMultiplier,
     });
-
+    console.log("Survey created", store.surveyId);
     navigateTo(`/admin/send-keys/${store.surveyId}`);
     toast("Sondage créé avec succès !");
   } catch (error) {
     console.error("Erreur lors de la création du sondage :", error);
     toast("Impossible de créer le sondage. Veuillez réessayer.");
   }
+};
+
+const backToSurveys = () => {
+  navigateTo("/admin/surveys");
 };
 </script>

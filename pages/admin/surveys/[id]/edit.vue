@@ -48,6 +48,24 @@
             {{ errors.description }}
           </p>
         </div>
+        <div class="mb-4">
+          <label
+            for="point_multiplier"
+            class="block text-sm font-medium text-gray-700"
+          >
+            Multiplier de points
+          </label>
+          <input
+            v-model="pointMultiplier"
+            id="point_multiplier"
+            type="text"
+            placeholder="Ex : 239/20 ou 5.1234567890"
+            class="mt-1 block w-full p-2 border border-gray-300 rounded"
+          />
+          <p v-if="errors.pointMultiplier" class="text-red-500 text-sm mt-1">
+            {{ errors.pointMultiplier }}
+          </p>
+        </div>
         <h2 class="text-lg font-semibold mb-4">Questions</h2>
         <div
           v-for="(question, index) in questions"
@@ -116,14 +134,18 @@
 import { ref, onMounted } from "vue";
 import { useSupabaseClient, useRoute } from "#imports";
 import { navigateTo } from "nuxt/app";
+import { evaluate } from "mathjs";
+import { useToast } from "vue-toastification";
 
 const supabase = useSupabaseClient();
 const route = useRoute();
+const toast = useToast();
 const id = route.params.id;
 
 const isLoading = ref(true);
 const title = ref("");
 const description = ref("");
+const pointMultiplier = ref<string>("1");
 const questions = ref([]);
 const deletedQuestions = ref([]);
 const errors = ref({});
@@ -147,6 +169,7 @@ const fetchSurvey = async () => {
 
     title.value = survey.title;
     description.value = survey.description;
+    pointMultiplier.value = survey.point_multiplier?.toString() || "1";
 
     const { data: questionsData, error: questionsError } = await supabase
       .from("questions")
@@ -166,17 +189,31 @@ const fetchSurvey = async () => {
 };
 
 const addQuestion = () => {
-  if (questions.value.length < 20) {
+  if (questions.value.length < 10) {
     questions.value.push({ text: "", type: "weighting" });
   }
 };
 
-const removeQuestion = (index) => {
+const removeQuestion = (index: number) => {
   const question = questions.value[index];
   if (question.id) {
     deletedQuestions.value.push(question.id);
   }
   questions.value.splice(index, 1);
+};
+
+const validateAndEvaluateMultiplier = (): number | null => {
+  try {
+    const result = evaluate(pointMultiplier.value.trim());
+    if (isNaN(result)) {
+      throw new Error("La valeur évaluée n'est pas un nombre.");
+    }
+    return parseFloat(result.toFixed(10));
+  } catch (error) {
+    errors.value.pointMultiplier =
+      "Le multiplicateur doit être un nombre ou une expression valide (ex : 200/90, 5.12345).";
+    return null;
+  }
 };
 
 const validateForm = () => {
@@ -191,6 +228,12 @@ const validateForm = () => {
     errors.value.description = "La description est requise.";
     valid = false;
   }
+
+  const multiplier = validateAndEvaluateMultiplier();
+  if (multiplier === null) {
+    valid = false;
+  }
+
   if (questions.value.length === 0) {
     errors.value.questions = "Au moins une question est requise.";
     valid = false;
@@ -211,9 +254,16 @@ const updateSurvey = async () => {
   if (!validateForm()) return;
 
   try {
+    const multiplier = validateAndEvaluateMultiplier();
+    if (multiplier === null) return;
+
     const { error: surveyError } = await supabase
       .from("surveys")
-      .update({ title: title.value, description: description.value })
+      .update({
+        title: title.value,
+        description: description.value,
+        point_multiplier: multiplier,
+      })
       .eq("id", id);
 
     if (surveyError) {
@@ -259,6 +309,7 @@ const updateSurvey = async () => {
     console.error(err);
   }
   navigateTo("/admin/surveys");
+  toast.success("Sondage modifié avec succès !");
 };
 
 const backToSurveys = () => {
