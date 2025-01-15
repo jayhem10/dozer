@@ -1,15 +1,13 @@
 <template>
   <div class="max-w-2xl mx-auto p-6">
-    <!-- Loader -->
     <div v-if="isLoading" class="flex justify-center items-center h-64">
       <div
         class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
       ></div>
     </div>
 
-    <!-- Content -->
     <div v-else>
-      <div class="mb-8">
+      <div class="mb-8 bg-white p-6 rounded-lg shadow-sm">
         <h2 class="text-2xl font-bold mb-4">Pondération des critères</h2>
         <p class="text-gray-600 mb-4">
           Notez entre 0 et 3 l'importance de ces critères pour vous :
@@ -39,7 +37,6 @@
             {{ item.text }}
           </label>
 
-          <!-- Range Input -->
           <div class="flex items-center gap-4">
             <span class="text-sm text-gray-500">0</span>
             <input
@@ -55,14 +52,12 @@
             <span class="text-sm text-gray-500">3</span>
           </div>
 
-          <!-- Display Score -->
           <div class="text-center text-sm text-gray-800">
             Score attribué : {{ store.weights[item.id] }}
           </div>
         </div>
       </div>
 
-      <!-- Points Feedback -->
       <div class="mt-8 p-4 rounded" :class="pointsClass">
         <p class="font-bold">
           Total des points : {{ store.totalPoints.toFixed(2) }}
@@ -87,9 +82,8 @@
       </div>
     </div>
 
-    <!-- Modal à droite -->
     <div
-      class="fixed top-1/2 right-4 transform -translate-y-1/2 bg-white shadow-lg p-4 rounded-lg border"
+      class="fixed top-1/2 right-10 transform -translate-y-1/2 bg-white shadow-lg p-4 rounded-lg border"
       :class="{
         'border-green-500': store.isValidPoints,
         'border-red-500': !store.isValidPoints,
@@ -138,7 +132,7 @@ onMounted(async () => {
 });
 
 const pointsClass = computed(() => {
-  if (!store.totalPoints) return "bg-gray-100";
+  if (!store.totalPoints) return "bg-white";
   return store.isValidPoints ? "bg-green-100" : "bg-red-100";
 });
 

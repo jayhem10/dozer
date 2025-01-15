@@ -1,6 +1,5 @@
 <template>
   <div class="max-w-4xl mx-auto p-6 mt-10">
-    <!-- Header -->
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-3xl font-bold text-gray-800">Gestion des sondages</h1>
       <div class="flex space-x-2">
@@ -42,29 +41,33 @@
 
     <div class="relative mb-6">
       <input
-        v-model="searchText"
-        @input="handleFilterSurveys"
+        v-model="searchQuery"
         type="text"
         placeholder="Rechercher par titre ou description"
         class="w-full p-2 border border-gray-300 rounded pr-10"
       />
       <button
-        v-if="searchText"
+        v-if="searchQuery"
         @click="handleResetSearch"
+        class="absolute top-1/2 right-2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+      >
+        <font-awesome-icon :icon="['fas', 'times']" />
+      </button>
+      <button
+        v-if="searchQuery"
+        @click="clearSearch"
         class="absolute top-1/2 right-2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
       >
         <font-awesome-icon :icon="['fas', 'times']" />
       </button>
     </div>
 
-    <!-- Loader -->
     <div v-if="isLoading" class="flex justify-center items-center h-64">
       <div
         class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
       ></div>
     </div>
 
-    <!-- Surveys List -->
     <div v-else>
       <div
         v-if="store.filteredSurveys.length === 0"
@@ -111,7 +114,6 @@
               </p>
             </div>
           </div>
-          <!-- Buttons -->
           <div class="grid grid-cols-2 gap-4 items-center">
             <button
               v-tippy="'Voir les clés'"
@@ -156,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import Swal from "sweetalert2";
 import { useSurveyStore } from "@/stores/survey";
 import { navigateTo } from "#imports";
@@ -165,14 +167,12 @@ import { useToast } from "vue-toastification";
 const toast = useToast();
 const store = useSurveyStore();
 const isLoading = ref(true);
-const searchText = ref("");
-
-const { fetchSurveys, toggleActiveSurvey, deleteSurvey, deactivateAll } = store;
+const searchQuery = ref("");
 
 onMounted(async () => {
   try {
     isLoading.value = true;
-    await fetchSurveys();
+    await store.fetchSurveys();
   } catch (error) {
     console.error("Erreur lors du chargement des sondages :", error);
   } finally {
@@ -196,41 +196,49 @@ const confirmDelete = (id: string) => {
     cancelButtonText: "Annuler",
   }).then(async (result) => {
     if (result.isConfirmed) {
+      isLoading.value = true;
       try {
-        await deleteSurvey(id);
+        await store.deleteSurvey(id);
         toast.success("Le sondage a été supprimé avec succès !");
       } catch (error) {
         console.error("Erreur lors de la suppression :", error);
         toast.error("Erreur lors de la suppression du sondage.");
+      } finally {
+        isLoading.value = false;
       }
     }
   });
 };
 
 const handleToggleActiveSurvey = async (id: string, isActive: boolean) => {
+  isLoading.value = true;
   try {
-    await toggleActiveSurvey(id, isActive);
+    await store.toggleActiveSurvey(id, isActive);
     const status = isActive ? "désactivé" : "activé";
     toast.success(`Le sondage a été ${status} avec succès !`);
   } catch (error) {
     console.error("Erreur lors du changement d'état :", error);
     toast.error("Erreur lors de l'activation/désactivation du sondage.");
+  } finally {
+    isLoading.value = false;
   }
 };
 
 const handleDeactivateAll = async () => {
+  isLoading.value = true;
   try {
-    await deactivateAll();
+    await store.deactivateAll();
     toast.success("Tous les sondages ont été désactivés avec succès !");
   } catch (error) {
     console.error("Erreur lors de la désactivation :", error);
     toast.error("Erreur lors de la désactivation des sondages.");
+  } finally {
+    isLoading.value = false;
   }
 };
 
-const handleFilterSurveys = () => {
-  console.log(searchText.value);
-  store.filterSurveys(searchText.value);
+const clearSearch = () => {
+  searchQuery.value = "";
 };
 
 const handleResetSearch = () => {
@@ -238,4 +246,8 @@ const handleResetSearch = () => {
 };
 
 const backToAdmin = () => navigateTo("/admin");
+
+watch(searchQuery, (newQuery) => {
+  store.filterSurveys(newQuery);
+});
 </script>

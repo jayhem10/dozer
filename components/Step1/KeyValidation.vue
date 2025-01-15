@@ -63,7 +63,7 @@ const validateKey = async () => {
     } else if (!survey.is_active) {
       errorMessage.value = "Le sondage associé à cette clé est inactif.";
     } else {
-      store.setAccessKey(id);
+      store.setAccessKeyId(id);
       store.nextStep();
     }
   } catch (err) {

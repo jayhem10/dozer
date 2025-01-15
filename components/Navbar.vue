@@ -3,9 +3,7 @@
     :class="{ 'w-80': isSidebarOpen, 'w-24': !isSidebarOpen }"
     class="fixed h-screen bg-gray-900 text-white shadow-lg flex flex-col justify-between transition-all duration-300"
   >
-    <!-- Sidebar Content -->
     <div class="flex flex-col h-full">
-      <!-- App Name -->
       <div class="p-4 text-center border-b border-gray-700">
         <h1
           :class="{
@@ -19,7 +17,6 @@
         </h1>
       </div>
 
-      <!-- Navigation Links -->
       <ul class="mt-6 space-y-1">
         <li v-for="link in navLinks" :key="link.path" class="group">
           <div
@@ -51,23 +48,6 @@
           </button>
         </li>
       </ul>
-    </div>
-
-    <!-- Score Section -->
-    <div class="p-4 text-center border-t border-gray-700">
-      <p
-        v-if="store.totalPoints !== null"
-        :class="[
-          store.totalPoints > 0 && !store.isValidPoints
-            ? 'text-red-500'
-            : store.isValidPoints
-            ? 'text-green-500'
-            : 'text-white',
-          isSidebarOpen ? 'text-lg font-bold' : 'text-sm font-bold',
-        ]"
-      >
-        Score: {{ store.totalPoints.toFixed(2) || 0 }}
-      </p>
     </div>
 
     <div class="p-4 border-t border-gray-700">
@@ -103,6 +83,7 @@
 
 <script setup lang="ts">
 import { useSurveyStore } from "@/stores/survey";
+import { navigateTo } from "nuxt/app";
 import { ref } from "vue";
 
 defineProps(["isSidebarOpen"]);

@@ -16,11 +16,13 @@
 
 <script setup lang="ts">
 import { navigateTo } from "nuxt/app";
+import { PropType } from "vue";
+import { Survey } from "stores/survey";
 import SurveyCard from "./SurveyCard.vue";
 
-defineProps({
+const props = defineProps({
   surveys: {
-    type: Array,
+    type: Array as PropType<Survey[]>,
     required: true,
   },
   isLoading: {
@@ -29,7 +31,7 @@ defineProps({
   },
 });
 
-const viewResults = (id) => {
+const viewResults = (id: string) => {
   navigateTo(`/admin/results/${id}`);
 };
 </script>

@@ -1,8 +1,7 @@
 <template>
   <div class="max-w-4xl mx-auto p-6 mt-10">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold mb-6">Créer un sondage</h1>
-
+      <h1 class="text-2xl font-bold">Créer un sondage</h1>
       <button
         v-tippy="'Retour'"
         @click="backToSurveys"
@@ -13,42 +12,47 @@
     </div>
 
     <form @submit.prevent="addSurvey">
-      <div class="mb-4">
-        <label for="title" class="block text-sm font-medium text-gray-700"
-          >Titre</label
-        >
+      <div class="mb-6">
+        <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+          Titre
+        </label>
         <input
           v-model="title"
           id="title"
           type="text"
-          class="mt-1 block w-full p-2 border border-gray-300 rounded"
+          placeholder="Entrez le titre du sondage"
+          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
         />
         <p v-if="errors.title" class="text-red-500 text-sm mt-1">
           {{ errors.title }}
         </p>
       </div>
 
-      <div class="mb-4">
-        <label for="description" class="block text-sm font-medium text-gray-700"
-          >Description</label
+      <div class="mb-6">
+        <label
+          for="description"
+          class="block text-sm font-medium text-gray-700 mb-2"
         >
+          Description
+        </label>
         <textarea
           v-model="description"
           id="description"
           rows="4"
-          class="mt-1 block w-full p-2 border border-gray-300 rounded"
+          placeholder="Ajoutez une description du sondage"
+          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
         ></textarea>
         <p v-if="errors.description" class="text-red-500 text-sm mt-1">
           {{ errors.description }}
         </p>
       </div>
 
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700"
-          >Multiplicateur de points</label
-        >
-        <div class="flex items-center mt-2">
-          <label class="flex items-center mr-4">
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Multiplicateur de points
+        </label>
+        <div class="flex items-center space-x-4">
+          <label class="flex items-center">
             <input
               type="radio"
               v-model="useDefaultMultiplier"
@@ -67,12 +71,12 @@
             Personnalisé
           </label>
         </div>
-        <div v-if="!useDefaultMultiplier" class="mt-2">
+        <div v-if="!useDefaultMultiplier" class="mt-4">
           <input
             v-model="customMultiplier"
             type="text"
             placeholder="Ex : 239/20 ou 5.25"
-            class="mt-1 block w-full p-2 border border-gray-300 rounded"
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
           />
           <p v-if="errors.customMultiplier" class="text-red-500 text-sm mt-1">
             {{ errors.customMultiplier }}
@@ -84,38 +88,38 @@
       <div
         v-for="(question, index) in questions"
         :key="index"
-        class="mb-4 p-4 border border-gray-200 rounded"
+        class="mb-4 p-4 border border-gray-200 rounded-md bg-gray-50"
       >
-        <div class="flex justify-between items-center mb-2">
+        <div class="flex justify-between items-center mb-4">
           <span class="font-medium">Question {{ index + 1 }}</span>
           <button
-            type="button"
             @click="removeQuestion(index)"
-            class="text-red-500 hover:underline"
             v-if="questions.length > 1"
+            v-tippy="'Supprimer'"
+            class="bg-gradient-to-r from-red-400 to-red-600 text-white px-3 py-1 rounded-md shadow hover:from-red-500 hover:to-red-700 transition"
           >
-            Supprimer
+            <font-awesome-icon :icon="['fas', 'trash']" />
           </button>
         </div>
         <input
           v-model="question.text"
           type="text"
-          class="mt-1 block w-full p-2 border border-gray-300 rounded mb-2"
           placeholder="Texte de la question"
+          class="w-full px-4 py-2 border border-gray-300 rounded-md mb-4 focus:outline-none focus:ring focus:ring-blue-200"
         />
-        <p v-if="errors[`question-${index}`]" class="text-red-500 text-sm mt-1">
+        <p v-if="errors[`question-${index}`]" class="text-red-500 text-sm">
           {{ errors[`question-${index}`] }}
         </p>
         <select
           v-model="question.type"
-          class="mt-1 block w-full p-2 border border-gray-300 rounded"
+          class="w-full px-4 py-2 mt-4 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
         >
           <option value="weighting">Pondération</option>
           <option value="rating">Évaluation</option>
         </select>
       </div>
 
-      <div class="flex justify-between items-center mt-4">
+      <div class="flex justify-between items-center mt-6">
         <button
           type="button"
           @click="addQuestion"
@@ -126,9 +130,16 @@
         </button>
         <button
           type="submit"
-          class="bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-md shadow hover:from-green-500 hover:to-green-700 transition"
+          class="flex items-center justify-center bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-md hover:from-green-500 hover:to-green-700 transition"
+          :disabled="isCreatingSurvey"
         >
-          Créer
+          <div
+            v-if="isCreatingSurvey"
+            class="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"
+          ></div>
+          <span>
+            {{ isCreatingSurvey ? "Création en cours..." : "Créer le sondage" }}
+          </span>
         </button>
       </div>
     </form>
@@ -151,6 +162,7 @@ const useDefaultMultiplier = ref(true);
 const customMultiplier = ref("");
 
 const title = ref("");
+const isCreatingSurvey = ref(false);
 const description = ref("");
 const questions = ref([{ text: "", type: "weighting" }]);
 const errors = ref({});
@@ -201,7 +213,7 @@ const validateForm = () => {
 
 const addSurvey = async () => {
   if (!validateForm()) return;
-
+  isCreatingSurvey.value = true;
   try {
     const pointMultiplier = useDefaultMultiplier.value
       ? defaultMultiplier
@@ -213,12 +225,13 @@ const addSurvey = async () => {
       questions: questions.value,
       point_multiplier: pointMultiplier,
     });
-    console.log("Survey created", store.surveyId);
     navigateTo(`/admin/send-keys/${store.surveyId}`);
     toast("Sondage créé avec succès !");
   } catch (error) {
     console.error("Erreur lors de la création du sondage :", error);
     toast("Impossible de créer le sondage. Veuillez réessayer.");
+  } finally {
+    isCreatingSurvey.value = false;
   }
 };
 

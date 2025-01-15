@@ -1,6 +1,5 @@
 <template>
   <div class="max-w-2xl mx-auto p-6">
-    <!-- Loader -->
     <div v-if="isLoading" class="flex justify-center items-center h-64">
       <svg
         class="animate-spin h-8 w-8 text-blue-500"
@@ -25,10 +24,8 @@
       <p class="ml-4 text-blue-500 font-medium">Chargement des questions...</p>
     </div>
 
-    <!-- Form Content -->
     <div v-else>
-      <!-- Step Title -->
-      <div class="mb-8">
+      <div class="mb-8 bg-white p-6 rounded-lg shadow-sm">
         <h2 class="text-2xl font-bold mb-4">Évaluation des critères</h2>
         <p class="text-gray-600 mb-4">
           Évaluez chacun des critères suivants en attribuant une note de 1 (très
@@ -38,7 +35,6 @@
         </p>
       </div>
 
-      <!-- Ratings Input -->
       <div class="space-y-6">
         <div
           v-for="item in store.questions"
@@ -71,15 +67,16 @@
         </div>
       </div>
 
-      <!-- Validation Message -->
-      <div class="mt-8">
+      <div class="mt-8 bg-white p-6 rounded-lg shadow-sm">
         <p v-if="!canSubmit" class="text-red-500 text-sm">
           Veuillez évaluer tous les critères avec une note d'au moins 1 avant de
           continuer.
         </p>
+        <p v-else class="text-green-500 text-sm">
+          Vous pouvez valider vos réponses. Cliquez sur le bouton ci-dessous
+        </p>
       </div>
 
-      <!-- Submit Button -->
       <div class="mt-8 flex justify-end">
         <button
           :disabled="!canSubmit"
@@ -94,9 +91,8 @@
         </button>
       </div>
 
-      <!-- Fixed Modal -->
       <div
-        class="fixed top-1/2 right-4 transform -translate-y-1/2 bg-white shadow-lg p-4 rounded-lg border"
+        class="fixed top-1/2 right-10 transform -translate-y-1/2 bg-white shadow-lg p-4 rounded-lg border"
         :class="{
           'border-green-500': canSubmit,
           'border-red-500': !canSubmit,

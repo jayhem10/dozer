@@ -1,13 +1,44 @@
-import { defineStore } from "pinia";
-import { ref, computed } from "vue";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { generateKey } from "crypto";
+import { defineStore } from "pinia";
 
 interface Question {
   id: string;
   text: string;
 }
 
-interface Survey {
+interface Response {
+  id: string;
+  answers: {
+    ratings: Record<string, FormattedAnswer>;
+    weights: Record<string, FormattedAnswer>;
+  };
+  submitted_at: string;
+  surveys: {
+    title: string;
+    description: string;
+  };
+}
+
+export interface AccessKey {
+  key: string;
+  id: string;
+  email: string;
+  is_used: boolean;
+  is_sent: boolean;
+}
+
+export interface Survey {
+  id: string;
+  title: string;
+  description: string;
+  point_multiplier: number;
+  is_active: boolean;
+  questions: Question[];
+  access_keys: AccessKey[];
+}
+
+export interface FilteredSurvey {
   id: string;
   title: string;
   description: string;
@@ -18,14 +49,7 @@ interface Survey {
   used_keys: number;
   sent_keys: number;
   access_keys: AccessKey[];
-}
-
-interface AccessKey {
-  key: string;
-  id: string;
-  email: string;
-  is_used: boolean;
-  is_sent: boolean;
+  questions: Question[];
 }
 
 interface FormattedAnswer {
@@ -33,318 +57,529 @@ interface FormattedAnswer {
   text: string;
 }
 
-export const useSurveyStore = defineStore("survey", () => {
-  const client = useSupabaseClient<SupabaseClient>();
+export interface SurveyState {
+  currentStep: number;
+  surveys: Survey[];
+  filteredSurveys: FilteredSurvey[];
+  keys: AccessKey[];
+  questions: Question[];
+  surveyTitle: string;
+  surveyId: string;
+  isSubmitted: boolean;
+  weights: Record<string, number>;
+  ratings: Record<string, number>;
+  totalPoints: number;
+  pointMultiplier: number;
+  accessKeyId: string;
+  searchText: string;
+  searchTextSurvey: string;
+  accessKeys: AccessKey[];
+  currentSurvey?: Survey;
+}
 
-  const currentStep = ref<number>(1);
-  const surveys = ref<Survey[]>([]);
-  const filteredSurveys = ref<Survey[]>([]);
-  const keys = ref<AccessKey[]>([]);
-  const questions = ref<Question[]>([]);
-  const surveyTitle = ref<string>("");
-  const surveyId = ref<string>("");
-  const isSubmitted = ref<boolean>(false);
-  const weights = ref<Record<string, number>>({});
-  const ratings = ref<Record<string, number>>({});
-  const totalPoints = ref<number>(0);
-  const pointMultiplier = ref<number>(0);
-  const accessKeyId = ref<string>("");
-  const searchText = ref<string>("");
-  const searchTextSurvey = ref("");
-  const accessKeys = ref<AccessKey[]>([]);
+export const useSurveyStore = defineStore("survey", {
+  state: (): SurveyState => ({
+    currentStep: 1,
+    surveys: [],
+    filteredSurveys: [],
+    keys: [],
+    questions: [],
+    surveyTitle: "",
+    surveyId: "",
+    isSubmitted: false,
+    weights: {},
+    ratings: {},
+    totalPoints: 0,
+    pointMultiplier: 0,
+    accessKeyId: "",
+    searchText: "",
+    searchTextSurvey: "",
+    accessKeys: [],
+    currentSurvey: undefined,
+  }),
 
-  const isValidPoints = computed(
-    () => totalPoints.value >= 102 && totalPoints.value <= 103
-  );
+  getters: {
+    isValidPoints(): boolean {
+      return this.totalPoints >= 102 && this.totalPoints <= 103;
+    },
+    hasActiveSurvey(): boolean {
+      return this.surveys.some((survey) => survey.is_active);
+    },
+    areAllWeightsSet(): boolean {
+      return this.questions.every(
+        (q) =>
+          typeof this.weights[q.id] === "number" && this.weights[q.id] !== null
+      );
+    },
+    areAllRatingsSet(): boolean {
+      return this.questions.every(
+        (q) =>
+          typeof this.ratings[q.id] === "number" && this.ratings[q.id] !== null
+      );
+    },
+    filteredKeys(): AccessKey[] {
+      return this.keys.filter((key) =>
+        this.searchText
+          ? key.key.toLowerCase().includes(this.searchText.toLowerCase())
+          : true
+      );
+    },
+  },
 
-  const hasActiveSurvey = computed(() =>
-    surveys.value.some((survey) => survey.is_active)
-  );
+  actions: {
+    setCurrentStep(step: number): void {
+      this.currentStep = step;
+    },
+    setSurveyTitle(title: string): void {
+      this.surveyTitle = title;
+    },
+    setSurveyId(id: string): void {
+      this.surveyId = id;
+    },
+    setAccessKeyId(id: string): void {
+      this.accessKeyId = id;
+    },
+    setSearchText(search: string): void {
+      this.searchText = search;
+    },
+    setPointMultiplier(multiplier: number): void {
+      this.pointMultiplier = multiplier;
+    },
+    nextStep(): void {
+      if (this.currentStep < 4) this.currentStep++;
+    },
 
-  const areAllWeightsSet = computed(() =>
-    questions.value.every(
-      (q) =>
-        typeof weights.value[q.id] === "number" && weights.value[q.id] !== null
-    )
-  );
+    async fetchSurveys(): Promise<Survey[]> {
+      const client = useSupabaseClient<SupabaseClient>();
+      try {
+        const { data, error } = await client
+          .from("surveys")
+          .select(
+            `id, title, description, point_multiplier, 
+             questions (id),
+             is_active,
+             access_keys (id, is_used, is_sent)`
+          )
+          .order("is_active", { ascending: false });
 
-  const areAllRatingsSet = computed(() =>
-    questions.value.every(
-      (q) =>
-        typeof ratings.value[q.id] === "number" && ratings.value[q.id] !== null
-    )
-  );
+        if (error) {
+          throw new Error(error.message);
+        }
 
-  const filteredKeys = computed(() =>
-    keys.value.filter((key) =>
-      searchText.value
-        ? key.key.toLowerCase().includes(searchText.value.toLowerCase())
-        : true
-    )
-  );
+        this.surveys = (data as Survey[]) || [];
+        this.filteredSurveys = this.formatSurveys(this.surveys);
 
-  const fetchSurveys = async () => {
-    try {
-      const { data, error } = await client
-        .from("surveys")
-        .select(
-          `id, title, description, point_multiplier, 
-       questions (id),
-       is_active,
-       access_keys (id, is_used, is_sent)`
-        )
-        .order("is_active", { ascending: false });
-
-      if (error) throw new Error(error.message);
-
-      surveys.value = data || [];
-
-      filteredSurveys.value = formatSurveys(surveys.value) as Survey[];
-    } catch (err) {
-      console.error("Erreur lors de fetchSurveys:", err);
-    }
-  };
-
-  const formatSurveys = (surveys: any[]) => {
-    return surveys.map((survey) => ({
-      id: survey.id,
-      title: survey.title,
-      description: survey.description || "",
-      point_multiplier: survey.point_multiplier || 200 / 39,
-      question_count: survey.questions?.length || 0,
-      is_active: survey.is_active,
-      total_keys: survey.access_keys?.length || 0,
-      used_keys: survey.access_keys?.filter((key) => key.is_used).length || 0,
-      sent_keys: survey.access_keys?.filter((key) => key.is_sent).length || 0,
-    }));
-  };
-
-  const filterSurveys = (searchText: string) => {
-    const search = searchText.toLowerCase();
-    filteredSurveys.value = formatSurveys(
-      surveys.value.filter(
-        (survey) =>
-          survey.title.toLowerCase().includes(search) ||
-          (survey.description &&
-            survey.description.toLowerCase().includes(search))
-      )
-    );
-  };
-
-  const resetSearch = () => {
-    searchTextSurvey.value = "";
-    filteredSurveys.value = formatSurveys(surveys.value);
-  };
-
-  const fetchQuestions = async () => {
-    try {
-      const { data: survey, error: surveyError } = await client
-        .from("surveys")
-        .select("id, title, point_multiplier")
-        .eq("is_active", true)
-        .single();
-
-      if (surveyError || !survey)
-        throw new Error("Erreur lors de la récupération du sondage actif.");
-
-      surveyId.value = survey.id;
-      surveyTitle.value = survey.title;
-      pointMultiplier.value = survey.point_multiplier || 200 / 39;
-
-      const { data: surveyQuestions, error: questionsError } = await client
-        .from("questions")
-        .select("id, text")
-        .eq("survey_id", survey.id);
-
-      if (questionsError || !surveyQuestions)
-        throw new Error("Erreur lors de la récupération des questions.");
-
-      questions.value = surveyQuestions;
-      surveyQuestions.forEach((q) => {
-        weights.value[q.id] = 0;
-        ratings.value[q.id] = 0;
-      });
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  async function createSurvey(data: {
-    title: string;
-    description: string;
-    questions: { text: string; type: string }[];
-    point_multiplier: number;
-  }): Promise<void> {
-    try {
-      const { data: survey, error: surveyError } = await client
-        .from("surveys")
-        .insert([
-          {
-            title: data.title,
-            description: data.description,
-            point_multiplier: data.point_multiplier,
-          },
-        ])
-        .select()
-        .single();
-
-      if (surveyError || !survey) {
-        throw new Error("Erreur lors de la création du sondage.");
+        return this.surveys;
+      } catch (err) {
+        console.error("Erreur lors de fetchSurveys:", err);
+        return [];
       }
+    },
 
-      surveyId.value = survey.id;
-      surveyTitle.value = survey.title;
+    async fetchSurveyById(
+      id: string,
+      fetchResponses: boolean = false
+    ): Promise<void> {
+      const client = useSupabaseClient<SupabaseClient>();
 
-      const formattedQuestions = data.questions.map((q) => ({
-        survey_id: survey.id,
-        text: q.text,
-        type: q.type,
-      }));
+      try {
+        const selectFields = [
+          "id",
+          "title",
+          "description",
+          "point_multiplier",
+          "questions (id, text, type)",
+          "is_active",
+          "access_keys (*)",
+        ];
 
-      const { error: questionsError } = await client
-        .from("questions")
-        .insert(formattedQuestions);
+        if (fetchResponses) {
+          selectFields.push("responses (id, answers, submitted_at)");
+        }
 
-      if (questionsError) {
-        throw new Error("Erreur lors de l'enregistrement des questions.");
+        const { data: survey, error } = await client
+          .from("surveys")
+          .select(selectFields.join(", "))
+          .eq("id", id)
+          .single();
+
+        if (error || !survey) {
+          throw new Error("Erreur lors de la récupération du sondage.");
+        }
+
+        this.currentSurvey = survey;
+
+        if (survey.questions) {
+          this.questions = survey.questions;
+
+          survey.questions.forEach((q) => {
+            this.weights[q.id] = 0;
+            this.ratings[q.id] = 0;
+          });
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération des données :", error);
+        throw error;
       }
+    },
+    async createSurvey(data: {
+      title: string;
+      description: string;
+      point_multiplier: number;
+      questions: { text: string; type: string }[];
+    }): Promise<void> {
+      const client = useSupabaseClient<SupabaseClient>();
+      try {
+        const { data: survey, error: surveyError } = await client
+          .from("surveys")
+          .insert([
+            {
+              title: data.title,
+              description: data.description,
+              point_multiplier: data.point_multiplier,
+            },
+          ])
+          .select()
+          .single();
 
-      questions.value = formattedQuestions.map((q) => ({
-        id: q.survey_id,
-        text: q.text,
+        if (surveyError || !survey) {
+          throw new Error("Erreur lors de la création du sondage.");
+        }
+
+        this.surveyId = survey.id;
+        this.surveyTitle = survey.title;
+
+        const formattedQuestions = data.questions.map((q) => ({
+          survey_id: survey.id,
+          text: q.text,
+          type: q.type,
+        }));
+
+        const { error: questionsError } = await client
+          .from("questions")
+          .insert(formattedQuestions);
+
+        if (questionsError) {
+          throw new Error("Erreur lors de l'enregistrement des questions.");
+        }
+
+        this.questions = formattedQuestions.map((q) => ({
+          id: q.survey_id,
+          text: q.text,
+        }));
+
+        this.questions.forEach((q) => {
+          this.weights[q.id] = 0;
+          this.ratings[q.id] = 0;
+        });
+      } catch (error) {
+        console.error(error);
+        throw error;
+      }
+    },
+
+    formatSurveys(surveys: Survey[]): FilteredSurvey[] {
+      return surveys.map((survey) => ({
+        id: survey.id,
+        title: survey.title,
+        description: survey.description || "",
+        point_multiplier: survey.point_multiplier || 200 / 39,
+        question_count: survey.questions?.length || 0,
+        is_active: survey.is_active,
+        total_keys: survey.access_keys?.length || 0,
+        used_keys: survey.access_keys?.filter((key) => key.is_used).length || 0,
+        sent_keys: survey.access_keys?.filter((key) => key.is_sent).length || 0,
+        access_keys: survey.access_keys || [],
+        questions: survey.questions || [],
       }));
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
-  }
-  function setAccessKey(id: string): void {
-    accessKeyId.value = id;
-  }
+    },
 
-  const generateKey = async (surveyId: string) => {
-    const newKey = Math.random().toString(36).substring(2, 10).toUpperCase();
-    try {
-      const { error } = await client.from("access_keys").insert({
-        survey_id: surveyId,
-        key: newKey,
-        is_used: false,
-        is_sent: false,
-      });
+    async submitSurvey(): Promise<void> {
+      const client = useSupabaseClient<SupabaseClient>();
+      try {
+        if (!this.surveyId || !this.accessKeyId) {
+          throw new Error("Survey ID ou Access Key ID manquant.");
+        }
 
-      if (error) throw new Error(error.message);
+        const formattedAnswers = {
+          ratings: Object.entries(this.ratings).reduce<
+            Record<string, FormattedAnswer>
+          >((acc, [id, value]) => {
+            const question = this.questions.find((q) => q.id === id);
+            if (question) {
+              acc[id] = { value, text: question.text };
+            }
+            return acc;
+          }, {}),
+          weights: Object.entries(this.weights).reduce<
+            Record<string, FormattedAnswer>
+          >((acc, [id, value]) => {
+            const question = this.questions.find((q) => q.id === id);
+            if (question) {
+              acc[id] = { value: Number(value), text: question.text };
+            }
+            return acc;
+          }, {}),
+        };
 
-      await fetchKeys(surveyId);
-    } catch (err) {
-      console.error("Erreur lors de generateKey:", err);
-    }
-  };
+        const { error: insertError } = await client.from("responses").insert({
+          survey_id: this.surveyId,
+          answers: formattedAnswers,
+          submitted_at: new Date().toISOString(),
+        });
 
-  const fetchKeys = async (surveyId: string) => {
-    try {
-      const { data, error } = await client
-        .from("access_keys")
-        .select("*")
-        .eq("survey_id", surveyId);
+        if (insertError) throw insertError;
 
-      if (error) throw new Error(error.message);
+        const { error: updateError } = await client
+          .from("access_keys")
+          .update({ is_used: true })
+          .eq("id", this.accessKeyId);
+        if (updateError) throw updateError;
 
-      keys.value = data || [];
-    } catch (err) {
-      console.error("Erreur lors de fetchKeys:", err);
-    }
-  };
+        this.isSubmitted = true;
+      } catch (error) {
+        console.error("Erreur lors de l'envoi :", error);
+        throw error;
+      } finally {
+        this.resetStore();
+      }
+    },
 
-  function nextStep(): void {
-    if (currentStep.value < 4) currentStep.value++;
-  }
+    async deleteSurvey(id: string): Promise<void> {
+      const client = useSupabaseClient<SupabaseClient>();
+      try {
+        const { error } = await client.from("surveys").delete().eq("id", id);
 
-  const calculateTotalPoints = () => {
-    totalPoints.value = Object.values(weights.value).reduce(
-      (sum, weight) => sum + weight * pointMultiplier.value,
-      0
-    );
-  };
+        if (error) {
+          console.error("Erreur lors de la suppression du sondage :", error);
+          throw new Error("La suppression du sondage a échoué.");
+        }
 
-  const deleteSurvey = async (id) => {
-    try {
-      const { error } = await client.from("surveys").delete().eq("id", id);
-      if (error) {
+        // Rafraîchit la liste des sondages après suppression
+        await this.fetchSurveys();
+      } catch (error) {
         console.error("Erreur lors de la suppression du sondage :", error);
-      } else {
-        await fetchSurveys();
+        throw error;
       }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+    },
+    async toggleActiveSurvey(id: string, isActive: boolean): Promise<void> {
+      const client = useSupabaseClient<SupabaseClient>();
+      try {
+        if (!isActive) {
+          await client
+            .from("surveys")
+            .update({ is_active: false })
+            .eq("is_active", true);
 
-  const toggleActiveSurvey = async (id, isActive) => {
-    if (!isActive) {
-      await client
-        .from("surveys")
-        .update({ is_active: false })
-        .eq("is_active", true);
-      await client.from("surveys").update({ is_active: true }).eq("id", id);
-    } else {
-      await client.from("surveys").update({ is_active: false }).eq("id", id);
-    }
-    await fetchSurveys();
-  };
+          await client.from("surveys").update({ is_active: true }).eq("id", id);
+        } else {
+          await client
+            .from("surveys")
+            .update({ is_active: false })
+            .eq("id", id);
+        }
 
-  const deactivateAll = async () => {
-    await client
-      .from("surveys")
-      .update({ is_active: false })
-      .eq("is_active", true);
-    await fetchSurveys();
-  };
+        await this.fetchSurveys();
+      } catch (error) {
+        console.error(
+          "Erreur lors de la modification de l'état actif du sondage :",
+          error
+        );
+        throw error;
+      }
+    },
+    async deactivateAll(): Promise<void> {
+      const client = useSupabaseClient<SupabaseClient>();
+      try {
+        // Désactiver tous les sondages actifs
+        await client
+          .from("surveys")
+          .update({ is_active: false })
+          .eq("is_active", true);
 
-  const resetStore = () => {
-    surveys.value = [];
-    keys.value = [];
-    questions.value = [];
-    surveyId.value = "";
-    surveyTitle.value = "";
-    weights.value = {};
-    ratings.value = {};
-    totalPoints.value = 0;
-    accessKeyId.value = "";
-    accessKeys.value = [];
-  };
+        await this.fetchSurveys();
+      } catch (error) {
+        console.error("Erreur lors de la désactivation des sondages :", error);
+        throw error;
+      }
+    },
+    async generateAndSendKeys(emails: string[]): Promise<AccessKey[]> {
+      const client = useSupabaseClient<SupabaseClient>();
+      if (!this.surveyId) {
+        throw new Error("ID du sondage manquant.");
+      }
 
-  return {
-    currentStep,
-    surveys,
-    filteredSurveys,
-    keys,
-    questions,
-    surveyId,
-    surveyTitle,
-    weights,
-    ratings,
-    totalPoints,
-    pointMultiplier,
-    accessKeys,
-    isSubmitted,
-    isValidPoints,
-    hasActiveSurvey,
-    areAllWeightsSet,
-    areAllRatingsSet,
-    filteredKeys,
-    fetchSurveys,
-    fetchQuestions,
-    createSurvey,
-    fetchKeys,
-    generateKey,
-    calculateTotalPoints,
-    nextStep,
-    resetStore,
-    deleteSurvey,
-    toggleActiveSurvey,
-    deactivateAll,
-    setAccessKey,
-    filterSurveys,
-    resetSearch,
-  };
+      try {
+        const keys = emails.map((email) => ({
+          key: crypto.randomUUID(),
+          survey_id: this.surveyId,
+          is_used: false,
+          is_sent: false,
+          email,
+        }));
+
+        const { data: savedKeys, error: dbError } = await client
+          .from("access_keys")
+          .insert(keys.map(({ email, ...rest }) => rest))
+          .select("key, id");
+
+        if (dbError) {
+          console.error(
+            "Erreur lors de l'enregistrement des clés d'accès :",
+            dbError
+          );
+          throw new Error("Erreur lors de l'enregistrement des clés d'accès.");
+        }
+
+        return savedKeys.map((key, index) => ({
+          ...key,
+          email: emails[index],
+        }));
+      } catch (error) {
+        console.error("Erreur lors de la génération des clés :", error);
+        throw error;
+      }
+    },
+
+    async generateKey(id: string): Promise<string> {
+      const newKey = crypto.randomUUID();
+      try {
+        await this.addKey(id, newKey);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        return newKey;
+      }
+    },
+    filterSurveys(searchText: string): void {
+      const search = searchText.toLowerCase();
+      this.filteredSurveys = this.formatSurveys(
+        this.surveys.filter(
+          (survey) =>
+            survey.title.toLowerCase().includes(search) ||
+            (survey.description &&
+              survey.description.toLowerCase().includes(search))
+        )
+      );
+    },
+
+    calculateTotalPoints(): void {
+      this.totalPoints = Object.values(this.weights).reduce(
+        (sum, weight) => sum + weight * this.pointMultiplier,
+        0
+      );
+    },
+
+    async fetchQuestions(): Promise<void> {
+      const client = useSupabaseClient<SupabaseClient>();
+      try {
+        const { data: survey, error: surveyError } = await client
+          .from("surveys")
+          .select("id, title, point_multiplier")
+          .eq("is_active", true)
+          .single();
+
+        if (surveyError || !survey) {
+          throw new Error("Erreur lors de la récupération du sondage actif.");
+        }
+
+        this.setSurveyId(survey.id);
+        this.setSurveyTitle(survey.title);
+        this.setPointMultiplier(survey.point_multiplier || 200 / 39);
+
+        const { data: surveyQuestions, error: questionsError } = await client
+          .from("questions")
+          .select("id, text")
+          .eq("survey_id", survey.id);
+
+        if (questionsError || !surveyQuestions) {
+          throw new Error("Erreur lors de la récupération des questions.");
+        }
+
+        this.questions = surveyQuestions;
+        surveyQuestions.forEach((q) => {
+          this.weights[q.id] = 0;
+          this.ratings[q.id] = 0;
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    },
+
+    async addKey(surveyId: string, newKey: string): Promise<void> {
+      const client = useSupabaseClient<SupabaseClient>();
+      try {
+        const { error } = await client.from("access_keys").insert({
+          survey_id: surveyId,
+          key: newKey,
+          is_used: false,
+          is_sent: false,
+        });
+
+        if (error) {
+          throw new Error("Erreur lors de l'ajout de la clé.");
+        }
+      } catch (error) {
+        console.error("Erreur lors de l'ajout de la clé :", error);
+        throw error;
+      }
+    },
+
+    async removeKey(keyId: string): Promise<void> {
+      const client = useSupabaseClient<SupabaseClient>();
+      try {
+        const { error } = await client
+          .from("access_keys")
+          .delete()
+          .eq("id", keyId);
+
+        if (error) {
+          throw new Error("Erreur lors de la suppression de la clé.");
+        }
+
+        // Mise à jour locale des clés
+        this.keys = this.keys.filter((key) => key.id !== keyId);
+      } catch (error) {
+        console.error("Erreur lors de la suppression de la clé :", error);
+        throw error;
+      }
+    },
+    filterKeys(searchQuery: string, filterStatus: string): AccessKey[] {
+      let filtered = this.keys;
+
+      if (searchQuery.trim()) {
+        filtered = filtered.filter((key) =>
+          key.key.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+
+      if (filterStatus === "used") {
+        filtered = filtered.filter((key) => key.is_used);
+      } else if (filterStatus === "available") {
+        filtered = filtered.filter((key) => !key.is_used);
+      } else if (filterStatus === "sent") {
+        filtered = filtered.filter((key) => key.is_sent);
+      }
+
+      return filtered;
+    },
+
+    getKeyStatistics(): { total: number; used: number } {
+      const total = this.keys.length;
+      const used = this.keys.filter((key) => key.is_used).length;
+
+      return { total, used };
+    },
+    resetStore(): void {
+      this.surveyId = "";
+      this.surveyTitle = "";
+      this.questions = [];
+      this.weights = {};
+      this.ratings = {};
+      this.accessKeyId = "";
+      this.accessKeys = [];
+      this.totalPoints = 0;
+      this.isSubmitted = false;
+    },
+  },
 });

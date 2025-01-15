@@ -13,7 +13,6 @@
     <div class="relative mb-4">
       <input
         v-model="searchQuery"
-        @input="fetchSurveys"
         type="text"
         placeholder="Rechercher par nom ou description"
         class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-blue-200 pr-10"
@@ -32,53 +31,39 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { useSupabaseClient } from "#imports";
+import { ref, onMounted, computed, watch } from "vue";
+import { useSurveyStore } from "@/stores/survey";
+import { navigateTo } from "nuxt/app";
+
 import ResultsList from "@/components/admin/ResultsList.vue";
 
-const supabase = useSupabaseClient();
-const isLoading = ref(true);
-const surveys = ref([]);
+const isLoading = ref(false);
 const searchQuery = ref("");
 
-const fetchSurveys = async () => {
-  isLoading.value = true;
+const store = useSurveyStore();
 
-  try {
-    const { data, error } = await supabase
-      .from("surveys")
-      .select("*")
-      .order("is_active", { ascending: false });
-
-    if (error) {
-      console.error("Erreur lors de la récupération des enquêtes :", error);
-    } else {
-      surveys.value = data || [];
-    }
-  } catch (err) {
-    console.error(err);
-  } finally {
-    isLoading.value = false;
-  }
-};
+const { fetchSurveys } = store;
 
 const clearSearch = () => {
   searchQuery.value = "";
 };
 
-const filteredSurveys = computed(() => {
-  if (!searchQuery.value.trim()) {
-    return surveys.value;
+const filteredSurveys = computed(() => store.filteredSurveys);
+
+onMounted(async () => {
+  try {
+    isLoading.value = true;
+    await fetchSurveys();
+  } catch (error) {
+    console.error("Erreur lors du chargement des sondages :", error);
+  } finally {
+    isLoading.value = false;
   }
-  return surveys.value.filter((survey) =>
-    [survey.title, survey.description]
-      .join(" ")
-      .toLowerCase()
-      .includes(searchQuery.value.trim().toLowerCase())
-  );
 });
 
-fetchSurveys();
+watch(searchQuery, (newQuery) => {
+  store.filterSurveys(newQuery);
+});
 
 const backToAdmin = () => {
   navigateTo("/admin");

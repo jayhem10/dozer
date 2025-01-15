@@ -11,7 +11,6 @@
       }}
     </button>
 
-    <!-- Affichage des totaux sous forme de tableau -->
     <div v-if="showTotals" class="bg-white p-4 rounded-md shadow mb-6">
       <h2 class="text-xl font-bold mb-4">Totaux Globaux</h2>
       <div class="overflow-x-auto">

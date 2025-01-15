@@ -1,6 +1,5 @@
 <template>
   <div class="max-w-4xl mx-auto p-6 mt-10">
-    <!-- Header -->
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold">
         Clés d'accès pour le sondage : {{ surveyTitle }}
@@ -36,15 +35,15 @@
       <div class="text-gray-800">
         <p class="text-lg font-semibold">
           Nombre total de clés :
-          <span class="text-blue-500">{{ numberOfKeys }}</span>
+          <span class="text-blue-500">{{ totalKeys }}</span>
         </p>
         <p class="text-lg font-semibold">
           Clés utilisées :
-          <span class="text-red-500">{{ numberOfUsedKeys }}</span>
+          <span class="text-red-500">{{ usedKeys }}</span>
         </p>
       </div>
       <button
-        @click="generateKey"
+        @click="handleGenerateKey"
         v-tippy="'Générer une nouvelle clé'"
         class="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2 rounded-md shadow hover:from-blue-500 hover:to-blue-700 transition"
       >
@@ -57,7 +56,6 @@
         class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
       ></div>
     </div>
-
     <div v-else>
       <div
         v-if="filteredKeys.length === 0"
@@ -75,7 +73,6 @@
               <th class="border border-gray-300 px-4 py-2">Actions</th>
             </tr>
           </thead>
-
           <tbody>
             <tr
               v-for="key in filteredKeys"
@@ -95,7 +92,7 @@
                 <button
                   @click="navigateToSendKey(key.key)"
                   v-tippy="'Envoyer la clé'"
-                  :disabled="key.is_sent"
+                  :disabled="key.is_sent || key.is_used"
                   class="bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-md shadow hover:from-green-500 hover:to-green-700 transition flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <font-awesome-icon
@@ -121,23 +118,28 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { useSupabaseClient, useRoute, navigateTo } from "#imports";
+import { useRoute, navigateTo } from "#imports";
 import { useToast } from "vue-toastification";
 import { useSurveyStore } from "@/stores/survey";
+import { AccessKey } from "stores/survey";
 
-const supabase = useSupabaseClient();
+import Swal from "sweetalert2";
+
+const store = useSurveyStore();
 const route = useRoute();
 const toast = useToast();
-const store = useSurveyStore();
-const id = route.params.id;
+const id = route.params.id as string;
 
-const surveyTitle = ref("");
-const keys = ref([]);
 const isLoading = ref(true);
-const numberOfKeys = ref(0);
-const numberOfUsedKeys = ref(0);
 const searchQuery = ref("");
 const filterStatus = ref("all");
+
+const surveyTitle = computed(() => store.currentSurvey?.title || "Inconnu");
+const keys = computed(() => store.currentSurvey?.access_keys || []);
+const totalKeys = computed(() => keys.value.length);
+const usedKeys = computed(
+  () => keys.value.filter((key: AccessKey) => key.is_used).length
+);
 
 const filteredKeys = computed(() => {
   let filtered = keys.value;
@@ -149,99 +151,70 @@ const filteredKeys = computed(() => {
   }
 
   if (filterStatus.value === "used") {
-    filtered = filtered.filter((key) => key.is_used);
+    filtered = filtered.filter((key: AccessKey) => key.is_used);
   } else if (filterStatus.value === "available") {
-    filtered = filtered.filter((key) => !key.is_used);
+    filtered = filtered.filter((key: AccessKey) => !key.is_used);
   } else if (filterStatus.value === "sent") {
-    filtered = filtered.filter((key) => key.is_sent);
+    filtered = filtered.filter((key: AccessKey) => key.is_sent);
   }
 
   return filtered;
 });
 
 onMounted(async () => {
-  await fetchSurvey();
-  await fetchKeys();
-});
-
-const fetchSurvey = async () => {
-  try {
-    const { data, error } = await supabase
-      .from("surveys")
-      .select("title")
-      .eq("id", id)
-      .single();
-
-    if (error) {
-      console.error("Erreur lors de la récupération du sondage :", error);
-    } else {
-      surveyTitle.value = data.title;
-    }
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-const fetchKeys = async () => {
   isLoading.value = true;
   try {
-    const { data, error } = await supabase
-      .from("access_keys")
-      .select("*")
-      .eq("survey_id", id)
-      .order("is_used", { ascending: false });
-    if (error) {
-      console.error("Erreur lors de la récupération des clés :", error);
-    } else {
-      keys.value = data || [];
-      numberOfKeys.value = keys.value.length;
-      numberOfUsedKeys.value = keys.value.filter((key) => key.is_used).length;
-    }
-  } catch (err) {
-    console.error(err);
+    await store.fetchSurveyById(id);
+  } catch (error) {
+    toast.error("Erreur lors du chargement du sondage.");
+    console.error(error);
+  } finally {
+    isLoading.value = false;
+  }
+});
+
+const handleGenerateKey = async () => {
+  try {
+    isLoading.value = true;
+    await store.generateKey(id);
+    await store.fetchSurveyById(id);
+    toast.success("Clé générée avec succès !");
+  } catch (error) {
+    toast.error("Erreur lors de la génération de la clé.");
+    console.error(error);
   } finally {
     isLoading.value = false;
   }
 };
 
-const generateKey = async () => {
-  const newKey = Math.random().toString(36).substring(2, 10).toUpperCase();
+const deleteKey = async (keyId: string) => {
   try {
-    const { error } = await supabase.from("access_keys").insert({
-      survey_id: id,
-      key: newKey,
-      is_used: false,
-      is_sent: false,
+    const result = await Swal.fire({
+      title: "Êtes-vous sûr ?",
+      text: "Cette action supprimera définitivement la clé.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Oui, supprimer",
+      cancelButtonText: "Annuler",
     });
-    if (error) {
-      console.error("Erreur lors de la génération de la clé :", error);
-    } else {
-      toast.success("Clé générée avec succès !");
-      await fetchKeys();
-    }
-  } catch (err) {
-    console.error(err);
-  }
-};
 
-const deleteKey = async (keyId) => {
-  try {
-    const { error } = await supabase
-      .from("access_keys")
-      .delete()
-      .eq("id", keyId);
-    if (error) {
-      console.error("Erreur lors de la suppression de la clé :", error);
-    } else {
+    if (result.isConfirmed) {
+      isLoading.value = true;
+      await store.removeKey(keyId);
+      await store.fetchSurveyById(id);
       toast.success("Clé supprimée avec succès !");
-      await fetchKeys();
     }
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    toast.error("Erreur lors de la suppression de la clé.");
+    console.error(error);
+  } finally {
+    isLoading.value = false;
   }
 };
 
-const navigateToSendKey = (key) => {
+const navigateToSendKey = (key: string) => {
   navigateTo(`/admin/send-key/${id}/${key}`);
 };
 

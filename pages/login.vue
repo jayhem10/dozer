@@ -5,7 +5,6 @@
     <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
       <h1 class="text-2xl font-bold text-gray-800 text-center">Connexion</h1>
       <form @submit.prevent="login" class="space-y-6">
-        <!-- Email Field -->
         <div>
           <label for="email" class="block text-sm font-medium text-gray-700">
             Email
@@ -21,7 +20,6 @@
           />
         </div>
 
-        <!-- Password Field -->
         <div>
           <label for="password" class="block text-sm font-medium text-gray-700">
             Mot de passe
@@ -37,12 +35,10 @@
           />
         </div>
 
-        <!-- Error Message -->
         <div v-if="errorMessage" class="text-sm text-red-600 text-center">
           {{ errorMessage }}
         </div>
 
-        <!-- Submit Button -->
         <div>
           <button
             type="submit"

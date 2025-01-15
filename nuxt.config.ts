@@ -25,5 +25,5 @@ export default defineNuxtConfig({
   build: {
     transpile: ["@fortawesome/vue-fontawesome"],
   },
-  plugins: ["~/plugins/toast.js"],
+  plugins: ["~/plugins/toast.js", "~/plugins/chart.ts"],
 });
