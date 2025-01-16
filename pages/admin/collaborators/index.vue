@@ -20,22 +20,6 @@
       </div>
     </div>
 
-    <div class="relative mb-6">
-      <input
-        v-model="searchText"
-        type="text"
-        placeholder="Rechercher par prénom, nom ou email"
-        class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-      />
-      <button
-        v-if="searchText"
-        @click="clearSearch"
-        class="absolute top-1/2 right-2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
-      >
-        <font-awesome-icon :icon="['fas', 'times']" />
-      </button>
-    </div>
-
     <div v-if="isLoading" class="flex justify-center items-center h-64">
       <div
         class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
@@ -43,6 +27,22 @@
     </div>
 
     <div v-else>
+      <div class="relative mb-6">
+        <input
+          v-model="searchText"
+          type="text"
+          placeholder="Rechercher par prénom, nom ou email"
+          class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+        />
+        <button
+          v-if="searchText"
+          @click="clearSearch"
+          class="absolute top-1/2 right-2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+        >
+          <font-awesome-icon :icon="['fas', 'times']" />
+        </button>
+      </div>
+
       <table
         class="w-full border-collapse border border-gray-300 rounded-md shadow bg-white"
       >
