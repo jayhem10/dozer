@@ -23,7 +23,7 @@ export default defineNuxtConfig({
     "vue-toastification/dist/index.css",
   ],
   build: {
-    transpile: ["@fortawesome/vue-fontawesome"],
+    transpile: ["@fortawesome/vue-fontawesome", "vue-toastification"],
   },
   plugins: ["~/plugins/toast.js", "~/plugins/chart.ts"],
 });
