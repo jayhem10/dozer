@@ -12,6 +12,10 @@ import {
   faBan,
   faClipboardList,
   faChartBar,
+  faUserSecret,
+  faShieldAlt,
+  faBolt,
+  faBullhorn,
   faArrowLeft,
   faArrowsAltH,
   faSignOutAlt,
@@ -45,10 +49,14 @@ library.add(
   faUsers,
   faExclamationCircle,
   faPaperPlane,
-  faClipboard
+  faClipboard,
+  faClipboardList,
+  faChartBar,
+  faUserSecret,
+  faShieldAlt,
+  faBolt,
+  faBullhorn
 );
-
-config.autoAddCss = false;
 
 export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.vueApp.component("font-awesome-icon", FontAwesomeIcon);

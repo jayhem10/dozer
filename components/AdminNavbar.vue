@@ -121,7 +121,7 @@ defineProps(["isSidebarOpen"]);
 defineEmits(["toggle"]);
 
 const navLinks = ref([
-  { label: "Sondage", path: "/", icon: ["fas", "clipboard"] },
+  { label: "Sondage", path: "/survey", icon: ["fas", "clipboard"] },
   {
     label: "Sondages",
     path: "/admin/surveys",

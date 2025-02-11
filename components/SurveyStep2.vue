@@ -52,7 +52,13 @@
             <span class="text-sm text-gray-500">3</span>
           </div>
 
-          <div class="text-center text-sm text-gray-800">
+          <div
+            class="text-center text-lg"
+            :class="{
+              'text-red-500': store.weights[item.id] === 0,
+              'text-green-500': store.weights[item.id] > 0,
+            }"
+          >
             Score attribué : {{ store.weights[item.id] }}
           </div>
         </div>
@@ -110,7 +116,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { useSurveyStore } from "@/stores/survey";
+import { useSurveyStore } from "~/stores/survey";
 
 const store = useSurveyStore();
 const isLoading = ref(true);

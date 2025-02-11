@@ -82,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { useSurveyStore } from "@/stores/survey";
+import { useSurveyStore } from "~/stores/survey";
 import { navigateTo } from "nuxt/app";
 import { ref } from "vue";
 
@@ -94,7 +94,7 @@ const store = useSurveyStore();
 const navLinks = ref([
   {
     label: "Sondage",
-    path: "/",
+    path: "/survey/",
     icon: ["fas", "clipboard-list"],
     step: 1,
   },

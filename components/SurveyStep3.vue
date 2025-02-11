@@ -30,7 +30,7 @@
         <p class="text-gray-600 mb-4">
           Évaluez chacun des critères suivants en attribuant une note de 1 (très
           insatisfait) à 10 (très satisfait) selon votre ressenti et expérience
-          au sein de l’entreprise. Soyez sincère, vos réponses resteront
+          au sein de l'entreprise. Soyez sincère, vos réponses resteront
           anonymes.
         </p>
       </div>
@@ -60,21 +60,17 @@
             <span class="text-sm text-gray-500">10</span>
           </div>
           <div class="mt-2 text-center">
-            <span class="text-lg font-medium text-gray-800">
-              Score : {{ store.ratings[item.id] }}
+            <span
+              class="text-lg font-medium text-gray-800"
+              :class="{
+                'text-red-500': store.ratings[item.id] === 0,
+                'text-green-500': store.ratings[item.id] > 0,
+              }"
+            >
+              Score attribué: {{ store.ratings[item.id] }}
             </span>
           </div>
         </div>
-      </div>
-
-      <div class="mt-8 bg-white p-6 rounded-lg shadow-sm">
-        <p v-if="!canSubmit" class="text-red-500 text-sm">
-          Veuillez évaluer tous les critères avec une note d'au moins 1 avant de
-          continuer.
-        </p>
-        <p v-else class="text-green-500 text-sm">
-          Vous pouvez valider vos réponses. Cliquez sur le bouton ci-dessous
-        </p>
       </div>
 
       <div class="mt-8 flex justify-end">
@@ -92,24 +88,11 @@
       </div>
 
       <div
-        class="fixed top-1/2 right-10 transform -translate-y-1/2 bg-white shadow-lg p-4 rounded-lg border"
-        :class="{
-          'border-green-500': canSubmit,
-          'border-red-500': !canSubmit,
-        }"
+        v-if="hasAllZeros"
+        class="fixed top-1/2 right-10 transform -translate-y-1/2 bg-white shadow-lg p-4 rounded-lg border border-yellow-500"
       >
-        <p
-          :class="{
-            'text-green-500': canSubmit,
-            'text-red-500': !canSubmit,
-          }"
-          class="font-bold"
-        >
-          {{
-            canSubmit
-              ? "Formulaire prêt à être soumis"
-              : "Évaluation incomplète"
-          }}
+        <p class="text-yellow-500 font-bold">
+          Attention : tous les scores sont à 0
         </p>
       </div>
     </div>
@@ -119,17 +102,20 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useSurveyStore } from "@/stores/survey";
+import type { Question } from "@/stores/survey";
+import Swal from "sweetalert2";
 
 const store = useSurveyStore();
 const isLoading = ref(true);
 
 onMounted(async () => {
   try {
-    store.questions.forEach((q) => {
+    store.questions.forEach((q: Question) => {
       if (store.ratings[q.id] === undefined) {
         store.ratings[q.id] = 0;
       }
     });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (error) {
     console.error("Erreur lors du chargement des questions :", error);
   } finally {
@@ -139,17 +125,43 @@ onMounted(async () => {
 
 const canSubmit = computed(() =>
   store.questions.every(
-    (q) => store.ratings[q.id] >= 1 && store.ratings[q.id] <= 10
+    (q: Question) => store.ratings[q.id] >= 0 && store.ratings[q.id] <= 10
   )
+);
+
+const hasAllZeros = computed(() =>
+  store.questions.every((q: Question) => store.ratings[q.id] === 0)
 );
 
 const submitResults = async () => {
   if (canSubmit.value) {
-    try {
-      await store.submitSurvey();
-      store.nextStep();
-    } catch (error) {
-      console.error("Erreur lors de l'envoi des résultats :", error);
+    if (hasAllZeros.value) {
+      const result = await Swal.fire({
+        title: "Attention",
+        text: "Tous les scores sont à 0. Voulez-vous vraiment valider ?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Oui, valider",
+        cancelButtonText: "Annuler",
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+      });
+
+      if (result.isConfirmed) {
+        try {
+          await store.submitSurvey();
+          store.nextStep();
+        } catch (error) {
+          console.error("Erreur lors de l'envoi des résultats :", error);
+        }
+      }
+    } else {
+      try {
+        await store.submitSurvey();
+        store.nextStep();
+      } catch (error) {
+        console.error("Erreur lors de l'envoi des résultats :", error);
+      }
     }
   }
 };

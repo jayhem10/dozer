@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6">
-    <h2 class="text-lg font-bold text-center">Analyse des Réponses</h2>
+    <h2 class="text-xl font-bold text-center mt-4">Moyennes des réponses</h2>
     <ClientOnly>
       <div class="relative bg-white p-6 rounded-lg shadow max-w-5xl mx-auto">
         <div class="relative h-[500px] w-full">
@@ -27,12 +27,12 @@
             <th
               class="border border-gray-300 px-4 py-2 bg-gray-200 text-center"
             >
-              Moyenne des Ratings
+              Moyenne des pondérations
             </th>
             <th
               class="border border-gray-300 px-4 py-2 bg-gray-200 text-center"
             >
-              Moyenne des Weights
+              Moyenne des évaluations
             </th>
           </tr>
         </thead>
@@ -48,15 +48,15 @@
             <td class="border border-gray-300 px-4 py-2">{{ label }}</td>
             <td class="border border-gray-300 px-4 py-2 text-center">
               {{
-                averageRatings[index] !== undefined
-                  ? averageRatings[index]
+                averageWeights[index] !== undefined
+                  ? averageWeights[index]
                   : "N/A"
               }}
             </td>
             <td class="border border-gray-300 px-4 py-2 text-center">
               {{
-                averageWeights[index] !== undefined
-                  ? averageWeights[index]
+                averageRatings[index] !== undefined
+                  ? averageRatings[index]
                   : "N/A"
               }}
             </td>
@@ -78,6 +78,7 @@ import {
   CategoryScale,
   LinearScale,
 } from "chart.js";
+import { computed } from "vue";
 
 // Register Chart.js components
 ChartJS.register(
@@ -108,12 +109,12 @@ const numberedQuestionLabels = computed(() =>
 // Prepare data for the chart
 const chartData = computed(() => {
   const questionIds = Object.keys(props.questionLabels);
-  const averageRatings = [];
-  const minRatings = [];
-  const maxRatings = [];
-  const averageWeights = [];
-  const minWeights = [];
-  const maxWeights = [];
+  const averageRatings: number[] = [];
+  const minRatings: number[] = [];
+  const maxRatings: number[] = [];
+  const averageWeights: number[] = [];
+  const minWeights: number[] = [];
+  const maxWeights: number[] = [];
 
   questionIds.forEach((id) => {
     const allRatings = props.responses.map(
@@ -240,6 +241,8 @@ const chartOptions = {
     },
     y: {
       beginAtZero: true,
+      min: 0,
+      max: 10,
       title: {
         display: true,
         text: "Valeurs",

@@ -4,6 +4,14 @@
       <h1 class="text-2xl font-bold">Collaborateurs</h1>
       <div class="flex space-x-4">
         <button
+          v-tippy="'Exporter en CSV'"
+          @click="exportToCSV"
+          class="bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-md shadow hover:from-green-500 hover:to-green-700 transition"
+        >
+          <font-awesome-icon :icon="['fas', 'file-export']" />
+          Exporter les collaborateurs
+        </button>
+        <button
           v-tippy="'Ajouter un collaborateur'"
           @click="openAddModal"
           class="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2 rounded-md shadow hover:from-blue-500 hover:to-blue-700 transition"
@@ -109,6 +117,8 @@ import { computed, ref, onMounted } from "vue";
 import { useToast } from "vue-toastification";
 import Swal from "sweetalert2";
 import CollaboratorModalComponent from "@/components/admin/CollaboratorModalComponent.vue";
+import { navigateTo } from "nuxt/app";
+import { Collaborator } from "@/types/index";
 
 const store = useCollaboratorStore();
 const toast = useToast();
@@ -127,23 +137,29 @@ onMounted(async () => {
   await store.fetchCollaborators();
 });
 
+interface ErrorWithMessage {
+  message: string;
+}
+
 const addCollaborator = async () => {
   try {
     await store.addCollaborator(newCollaborator.value);
     isAddModalOpen.value = false;
     toast.success("Collaborateur ajouté avec succès !");
-  } catch (error) {
-    toast.error(error.message || "Erreur lors de l'ajout du collaborateur.");
+  } catch (error: unknown) {
+    const err = error as ErrorWithMessage;
+    toast.error(err.message || "Erreur lors de l'ajout du collaborateur.");
   }
 };
 
-const updateCollaborator = async (collaborator) => {
+const updateCollaborator = async (collaborator: Collaborator) => {
   try {
     await store.updateCollaborator(collaborator);
     toast.success("Collaborateur mis à jour avec succès !");
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error as ErrorWithMessage;
     toast.error(
-      error.message || "Erreur lors de la mise à jour du collaborateur."
+      err.message || "Erreur lors de la mise à jour du collaborateur."
     );
   }
 };
@@ -163,9 +179,10 @@ const confirmDelete = (id: string) => {
       try {
         await store.deleteCollaborator(id);
         toast.success("Collaborateur supprimé avec succès !");
-      } catch (error) {
+      } catch (error: unknown) {
+        const err = error as ErrorWithMessage;
         toast.error(
-          error.message || "Erreur lors de la suppression du collaborateur."
+          err.message || "Erreur lors de la suppression du collaborateur."
         );
       }
     }
@@ -183,5 +200,76 @@ const openAddModal = () => {
 
 const backToAdmin = () => {
   navigateTo("/admin");
+};
+
+const exportToCSV = async () => {
+  if (searchText.value) {
+    const result = await Swal.fire({
+      title: "Export avec filtres",
+      text: "Des filtres sont actuellement appliqués. Que souhaitez-vous exporter ?",
+      icon: "question",
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: "Liste filtrée",
+      denyButtonText: "Liste complète",
+      cancelButtonText: "Annuler",
+      confirmButtonColor: "#3085d6",
+      denyButtonColor: "#2c5282",
+      cancelButtonColor: "#6b7280",
+    });
+
+    if (result.isDismissed) return;
+
+    const dataToExport = result.isConfirmed
+      ? filteredCollaborators.value
+      : store.collaborators;
+
+    const csvContent = dataToExport.map(
+      (collaborator: Collaborator) =>
+        `${collaborator.first_name},${collaborator.last_name},${collaborator.email}`
+    );
+
+    csvContent.unshift("Prénom,Nom,Email");
+
+    const blob = new Blob([csvContent.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "collaborateurs.csv");
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("Export CSV généré avec succès !");
+  } else {
+    // Si pas de filtre, exporter directement toute la liste
+    const csvContent = store.collaborators.map(
+      (collaborator: Collaborator) =>
+        `${collaborator.first_name},${collaborator.last_name},${collaborator.email}`
+    );
+
+    csvContent.unshift("Prénom,Nom,Email");
+
+    const blob = new Blob([csvContent.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "collaborateurs.csv");
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("Export CSV généré avec succès !");
+  }
 };
 </script>

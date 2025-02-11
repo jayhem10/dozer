@@ -1,43 +1,64 @@
 <template>
   <div>
-    <p class="mb-4 text-gray-600">
-      Veuillez entrer la clé pour commencer le sondage :
-    </p>
-    <input
-      v-model="keyInput"
-      type="text"
-      placeholder="Entrez votre clé"
-      class="w-full border rounded px-4 py-2 mb-4"
-    />
-    <p v-if="errorMessage" class="text-red-500 text-sm">{{ errorMessage }}</p>
+    <div v-if="isValidating" class="text-center text-2xl font-bold">
+      Validation de la clé en cours...
+    </div>
+    <div v-else-if="validationError" class="text-center text-red-500">
+      <div class="flex justify-center items-center mb-4 text-xl">
+        {{ validationError }}
+      </div>
+      <div class="flex justify-center items-center">
+        <button
+          @click="goToHome"
+          class="bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold py-2 px-4 rounded mt-4 hover:scale-105 transform transition"
+        >
+          Retour à l'accueil
+        </button>
+      </div>
+    </div>
 
-    <div class="flex justify-end">
+    <div
+      v-else-if="keyData && !keyData.is_used && keyData.survey.is_active"
+      class="text-center"
+    >
       <button
-        :disabled="!keyInput"
-        @click="validateKey"
-        class="px-6 py-2 rounded text-white font-bold transition-all"
-        :class="{
-          'bg-blue-600 hover:bg-blue-700': keyInput,
-          'bg-gray-400 cursor-not-allowed': !keyInput,
-        }"
+        @click="proceedToSurvey"
+        class="bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold py-2 px-4 rounded"
       >
-        Valider la clé
+        Accéder au sondage
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { useSurveyStore } from "@/stores/survey";
+import { ref, onMounted } from "vue";
+import { navigateTo } from "nuxt/app";
+interface KeyData {
+  id: string;
+  key: string;
+  is_used: boolean;
+  survey: {
+    is_active: boolean;
+  };
+}
+
+const props = defineProps<{
+  surveyKey: string;
+}>();
 
 const supabase = useSupabaseClient();
 const store = useSurveyStore();
 
-const keyInput = ref("");
-const errorMessage = ref("");
+const isValidating = ref(true);
+const keyData = ref<KeyData | null>(null);
+const validationError = ref<string>("");
 
-const validateKey = async () => {
+onMounted(async () => {
+  await validateKey();
+});
+
+async function validateKey() {
   try {
     const { data, error } = await supabase
       .from("access_keys")
@@ -49,26 +70,37 @@ const validateKey = async () => {
         survey:surveys (is_active)
       `
       )
-      .eq("key", keyInput.value)
+      .eq("key", props.surveyKey)
       .single();
 
-    if (error || !data) {
-      errorMessage.value = "Clé invalide ou sondage inactif.";
+    if (error) {
+      validationError.value = "Clé invalide ou sondage inactif.";
       return;
     }
 
-    const { id, is_used, survey } = data;
-    if (is_used) {
-      errorMessage.value = "Cette clé a déjà été utilisée.";
-    } else if (!survey.is_active) {
-      errorMessage.value = "Le sondage associé à cette clé est inactif.";
-    } else {
-      store.setAccessKeyId(id);
-      store.nextStep();
+    keyData.value = data;
+
+    if (data.is_used) {
+      validationError.value = "Cette clé a déjà été utilisée.";
+    } else if (!data.survey.is_active) {
+      validationError.value = "Le sondage associé à cette clé est inactif.";
     }
   } catch (err) {
     console.error(err);
-    errorMessage.value = "Une erreur est survenue. Veuillez réessayer.";
+    validationError.value = "Une erreur est survenue. Veuillez réessayer.";
+  } finally {
+    isValidating.value = false;
   }
+}
+
+const proceedToSurvey = () => {
+  if (keyData.value) {
+    store.setAccessKeyId(keyData.value.id);
+    store.nextStep();
+  }
+};
+
+const goToHome = () => {
+  navigateTo("/");
 };
 </script>

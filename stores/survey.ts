@@ -1,5 +1,4 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { generateKey } from "crypto";
 import { defineStore } from "pinia";
 
 interface Question {
@@ -32,8 +31,8 @@ export interface Survey {
   id: string;
   title: string;
   description: string;
-  point_multiplier: number;
   is_active: boolean;
+  point_multiplier: number;
   questions: Question[];
   access_keys: AccessKey[];
 }
@@ -188,7 +187,7 @@ export const useSurveyStore = defineStore("survey", {
           "title",
           "description",
           "point_multiplier",
-          "questions (id, text, type)",
+          "questions (id, text)",
           "is_active",
           "access_keys (*)",
         ];
@@ -226,7 +225,7 @@ export const useSurveyStore = defineStore("survey", {
       title: string;
       description: string;
       point_multiplier: number;
-      questions: { text: string; type: string }[];
+      questions: { text: string }[];
     }): Promise<void> {
       const client = useSupabaseClient<SupabaseClient>();
       try {
@@ -252,7 +251,6 @@ export const useSurveyStore = defineStore("survey", {
         const formattedQuestions = data.questions.map((q) => ({
           survey_id: survey.id,
           text: q.text,
-          type: q.type,
         }));
 
         const { error: questionsError } = await client

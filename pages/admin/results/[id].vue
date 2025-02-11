@@ -33,7 +33,10 @@
           :questionLabels="questionLabels"
         />
       </div>
-
+      <div class="w-full h-[2px] bg-gray-900 my-8"></div>
+      <div class="text-xl font-bold text-center">
+        Réponse des collaborateurs
+      </div>
       <div>
         <div
           v-if="responses && responses.length === 0"
@@ -59,6 +62,7 @@ import ResponsesTotals from "@/components/admin/ResponsesTotals.vue";
 import ResponseCard from "@/components/admin/ResponseCard.vue";
 import ResponsesChart from "@/components/admin/ResponsesChart.vue";
 import { useRoute } from "vue-router";
+import { navigateTo } from "nuxt/app";
 
 const route = useRoute();
 const store = useSurveyStore();

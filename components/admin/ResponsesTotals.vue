@@ -50,23 +50,44 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, PropType } from "vue";
+
+const showTotals = ref(false);
+interface FormattedAnswer {
+  value: number;
+  text: string;
+}
+
+interface Response {
+  answers: {
+    ratings: Record<string, FormattedAnswer>;
+    weights: Record<string, FormattedAnswer>;
+  };
+}
+
+interface QuestionTotals {
+  text: string;
+  totalRatings: number;
+  totalWeights: number;
+}
+
+interface TotalsMap {
+  [key: string]: QuestionTotals;
+}
 
 const props = defineProps({
   responses: {
-    type: Array,
+    type: Array as PropType<Response[]>,
     required: true,
   },
 });
-
-const showTotals = ref(false);
 
 const toggleTotals = () => {
   showTotals.value = !showTotals.value;
 };
 
 const combinedTotals = computed(() => {
-  const totals = {};
+  const totals: TotalsMap = {};
 
   props.responses.forEach((response) => {
     for (const [questionId, data] of Object.entries(
@@ -100,20 +121,4 @@ const combinedTotals = computed(() => {
 });
 </script>
 
-<style scoped>
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  text-align: left;
-  padding: 8px;
-  border: 1px solid #e5e7eb;
-}
-
-thead th {
-  background-color: #f9fafb;
-}
-</style>
+<style scoped></style>

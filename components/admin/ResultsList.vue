@@ -17,7 +17,9 @@
 <script setup lang="ts">
 import { navigateTo } from "nuxt/app";
 import { PropType } from "vue";
-import { Survey } from "stores/survey";
+
+import type { Survey } from "@/stores/survey";
+
 import SurveyCard from "./SurveyCard.vue";
 
 const props = defineProps({

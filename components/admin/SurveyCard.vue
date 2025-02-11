@@ -11,5 +11,9 @@
 </template>
 
 <script setup lang="ts">
-defineProps(["survey"]);
+import { Survey } from "@/stores/survey";
+
+defineProps<{
+  survey: Survey;
+}>();
 </script>

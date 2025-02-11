@@ -10,6 +10,4 @@
   </div>
 </template>
 
-<script setup lang="ts">
-const store = useSurveyStore();
-</script>
+<script setup lang="ts"></script>

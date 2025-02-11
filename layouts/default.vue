@@ -26,7 +26,7 @@
 import { ref } from "vue";
 import Navbar from "@/components/Navbar.vue";
 import AdminNavbar from "@/components/AdminNavbar.vue";
-import { useAuthStore } from "@/stores/auth";
+import { useAuthStore } from "~/stores/auth";
 
 const isSidebarOpen = ref(true);
 const authStore = useAuthStore();

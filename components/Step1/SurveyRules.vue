@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+  <div class="mb-10 p-4">
     <h2 class="text-2xl font-bold mb-4">Règles de l'enquête</h2>
     <div class="space-y-4 text-gray-600">
       <p>
