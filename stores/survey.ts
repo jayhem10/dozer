@@ -1,24 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { defineStore } from "pinia";
 
-interface Question {
-  id: string;
-  text: string;
-}
-
-interface Response {
-  id: string;
-  answers: {
-    ratings: Record<string, FormattedAnswer>;
-    weights: Record<string, FormattedAnswer>;
-  };
-  submitted_at: string;
-  surveys: {
-    title: string;
-    description: string;
-  };
-}
-
 export interface AccessKey {
   key: string;
   id: string;
@@ -35,6 +17,27 @@ export interface Survey {
   point_multiplier: number;
   questions: Question[];
   access_keys: AccessKey[];
+}
+
+export interface Question {
+  id?: string;
+  survey_id?: string;
+  rating?: string;
+  weighting?: string;
+  created_at?: string;
+}
+
+export interface Response {
+  id: string;
+  answers: {
+    ratings: Record<string, FormattedAnswer>;
+    weights: Record<string, FormattedAnswer>;
+  };
+  submitted_at: string;
+  surveys: {
+    title: string;
+    description: string;
+  };
 }
 
 export interface FilteredSurvey {
@@ -66,6 +69,7 @@ export interface SurveyState {
   surveyId: string;
   isSubmitted: boolean;
   weights: Record<string, number>;
+  weightingTexts: Record<string, string>;
   ratings: Record<string, number>;
   totalPoints: number;
   pointMultiplier: number;
@@ -74,6 +78,13 @@ export interface SurveyState {
   searchTextSurvey: string;
   accessKeys: AccessKey[];
   currentSurvey?: Survey;
+}
+
+interface CreateSurveyPayload {
+  title: string;
+  description: string;
+  questions: Partial<Question>[];
+  point_multiplier: number;
 }
 
 export const useSurveyStore = defineStore("survey", {
@@ -87,6 +98,7 @@ export const useSurveyStore = defineStore("survey", {
     surveyId: "",
     isSubmitted: false,
     weights: {},
+    weightingTexts: {},
     ratings: {},
     totalPoints: 0,
     pointMultiplier: 0,
@@ -187,7 +199,7 @@ export const useSurveyStore = defineStore("survey", {
           "title",
           "description",
           "point_multiplier",
-          "questions (id, text)",
+          "questions (id, weighting, rating)",
           "is_active",
           "access_keys (*)",
         ];
@@ -212,8 +224,10 @@ export const useSurveyStore = defineStore("survey", {
           this.questions = survey.questions;
 
           survey.questions.forEach((q) => {
-            this.weights[q.id] = 0;
-            this.ratings[q.id] = 0;
+            if (q.id) {
+              this.weights[q.id] = 0;
+              this.ratings[q.id] = 0;
+            }
           });
         }
       } catch (error) {
@@ -221,57 +235,46 @@ export const useSurveyStore = defineStore("survey", {
         throw error;
       }
     },
-    async createSurvey(data: {
-      title: string;
-      description: string;
-      point_multiplier: number;
-      questions: { text: string }[];
-    }): Promise<void> {
+    async createSurvey(payload: CreateSurveyPayload): Promise<void> {
       const client = useSupabaseClient<SupabaseClient>();
       try {
         const { data: survey, error: surveyError } = await client
           .from("surveys")
-          .insert([
-            {
-              title: data.title,
-              description: data.description,
-              point_multiplier: data.point_multiplier,
-            },
-          ])
+          .insert({
+            title: payload.title,
+            description: payload.description,
+            point_multiplier: payload.point_multiplier,
+          })
           .select()
           .single();
 
-        if (surveyError || !survey) {
-          throw new Error("Erreur lors de la création du sondage.");
-        }
+        if (surveyError) throw surveyError;
+
+        const questions = payload.questions.map((q) => ({
+          survey_id: survey.id,
+          weighting: q.weighting || null,
+          rating: q.rating || null,
+        }));
+
+        const { data: createdQuestions, error: questionsError } = await client
+          .from("questions")
+          .insert(questions)
+          .select();
+
+        if (questionsError) throw questionsError;
 
         this.surveyId = survey.id;
         this.surveyTitle = survey.title;
-
-        const formattedQuestions = data.questions.map((q) => ({
-          survey_id: survey.id,
-          text: q.text,
-        }));
-
-        const { error: questionsError } = await client
-          .from("questions")
-          .insert(formattedQuestions);
-
-        if (questionsError) {
-          throw new Error("Erreur lors de l'enregistrement des questions.");
-        }
-
-        this.questions = formattedQuestions.map((q) => ({
-          id: q.survey_id,
-          text: q.text,
-        }));
+        this.questions = createdQuestions;
 
         this.questions.forEach((q) => {
-          this.weights[q.id] = 0;
-          this.ratings[q.id] = 0;
+          if (q.id) {
+            this.weights[q.id] = 0;
+            this.ratings[q.id] = 0;
+          }
         });
       } catch (error) {
-        console.error(error);
+        console.error("Erreur lors de la création du sondage :", error);
         throw error;
       }
     },
@@ -304,8 +307,11 @@ export const useSurveyStore = defineStore("survey", {
             Record<string, FormattedAnswer>
           >((acc, [id, value]) => {
             const question = this.questions.find((q) => q.id === id);
-            if (question) {
-              acc[id] = { value, text: question.text };
+            if (question?.rating) {
+              acc[id] = {
+                value,
+                text: question.rating,
+              };
             }
             return acc;
           }, {}),
@@ -313,8 +319,11 @@ export const useSurveyStore = defineStore("survey", {
             Record<string, FormattedAnswer>
           >((acc, [id, value]) => {
             const question = this.questions.find((q) => q.id === id);
-            if (question) {
-              acc[id] = { value: Number(value), text: question.text };
+            if (question?.weighting) {
+              acc[id] = {
+                value,
+                text: question.weighting,
+              };
             }
             return acc;
           }, {}),
@@ -332,6 +341,7 @@ export const useSurveyStore = defineStore("survey", {
           .from("access_keys")
           .update({ is_used: true })
           .eq("id", this.accessKeyId);
+
         if (updateError) throw updateError;
 
         this.isSubmitted = true;
@@ -487,7 +497,7 @@ export const useSurveyStore = defineStore("survey", {
 
         const { data: surveyQuestions, error: questionsError } = await client
           .from("questions")
-          .select("id, text")
+          .select("id, weighting, rating")
           .eq("survey_id", survey.id);
 
         if (questionsError || !surveyQuestions) {
@@ -496,11 +506,14 @@ export const useSurveyStore = defineStore("survey", {
 
         this.questions = surveyQuestions;
         surveyQuestions.forEach((q) => {
-          this.weights[q.id] = 0;
-          this.ratings[q.id] = 0;
+          if (q.id) {
+            this.weights[q.id] = 0;
+            this.ratings[q.id] = 0;
+          }
         });
       } catch (error) {
         console.error(error);
+        throw error;
       }
     },
 

@@ -1,115 +1,92 @@
 <template>
-  <div class="max-w-2xl mx-auto p-6">
-    <div v-if="isLoading" class="flex justify-center items-center h-64">
+  <div class="max-h-screen flex flex-col p-2">
+    <div v-if="isLoading" class="flex-grow flex justify-center items-center">
       <div
         class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
       ></div>
     </div>
 
-    <div v-else>
-      <div class="mb-8 bg-white p-6 rounded-lg shadow-sm">
-        <h2 class="text-2xl font-bold mb-4">Pondération des critères</h2>
-        <p class="text-gray-600 mb-4">
-          Notez entre 0 et 3 l'importance de ces critères pour vous :
-        </p>
-        <ul class="list-disc ml-6 mb-6 text-gray-600">
-          <li>0 - Pas important du tout</li>
-          <li>1 - Peu important</li>
-          <li>2 - Important</li>
-          <li>3 - Très important</li>
-        </ul>
-        <div class="bg-blue-50 p-4 rounded-md text-sm text-blue-700">
+    <div v-else class="flex flex-col h-full">
+      <div class="bg-white p-3 rounded-lg shadow-sm">
+        <div class="flex justify-between items-start">
+          <div>
+            <h2 class="text-lg font-bold">Pondération des critères</h2>
+            <div class="flex gap-4 text-xs text-gray-600 mt-1">
+              <span>0: Pas important</span>
+              <span>1: Peu important</span>
+              <span>2: Important</span>
+              <span>3: Très important</span>
+            </div>
+          </div>
+        </div>
+        <div class="bg-blue-50 p-2 rounded-md text-xs text-blue-700 mt-2">
           <p>
             Vous devez atteindre entre 102 et 103 points pour valider vos
-            réponses. Ajustez les notes attribuées pour rester dans cette
-            fourchette.
+            réponses.
           </p>
         </div>
       </div>
 
-      <div class="space-y-4">
-        <div
-          v-for="item in store.questions"
-          :key="item.id"
-          class="flex flex-col gap-4 bg-white p-4 rounded-lg shadow-sm"
-        >
-          <label :for="item.id" class="text-lg font-medium">
-            {{ item.text }}
-          </label>
-
-          <div class="flex items-center gap-4">
-            <span class="text-sm text-gray-500">0</span>
-            <input
-              type="range"
-              :id="item.id"
-              v-model.number="store.weights[item.id]"
-              min="0"
-              max="3"
-              step="1"
-              class="flex-1 appearance-none h-2 bg-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-              @input="store.calculateTotalPoints"
-            />
-            <span class="text-sm text-gray-500">3</span>
-          </div>
-
+      <div class="flex-1 overflow-y-auto my-4">
+        <div class="grid gap-2">
           <div
-            class="text-center text-lg"
-            :class="{
-              'text-red-500': store.weights[item.id] === 0,
-              'text-green-500': store.weights[item.id] > 0,
-            }"
+            v-for="item in weightingQuestions"
+            :key="item.id"
+            class="bg-white p-3 rounded-lg shadow-sm"
           >
-            Score attribué : {{ store.weights[item.id] }}
+            <div class="flex items-center justify-between gap-4">
+              <label :for="item.id" class="text-sm font-medium flex-grow">
+                {{ item.weighting }}
+              </label>
+              <div class="flex items-center gap-2 min-w-[200px]">
+                <span class="text-xs text-gray-500">0</span>
+                <input
+                  type="range"
+                  :id="item.id"
+                  v-model.number="store.weights[item.id]"
+                  min="0"
+                  max="3"
+                  step="1"
+                  class="flex-1 h-2 bg-gray-200 rounded-full"
+                  @input="store.calculateTotalPoints"
+                />
+                <span class="text-xs text-gray-500">3</span>
+                <span
+                  class="w-6 text-center font-medium"
+                  :class="{
+                    'text-red-500': store.weights[item.id] === 0,
+                    'text-green-500': store.weights[item.id] > 0,
+                  }"
+                >
+                  {{ store.weights[item.id] }}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="mt-8 p-4 rounded" :class="pointsClass">
-        <p class="font-bold">
-          Total des points : {{ store.totalPoints.toFixed(2) }}
-        </p>
-        <p v-if="!store.isValidPoints" class="text-sm mt-2">
-          {{ pointsMessage }}
-        </p>
+      <div class="bg-white p-3 rounded-lg shadow-sm">
+        <div class="flex justify-between items-center">
+          <div :class="pointsClass" class="px-4 py-2 rounded-md">
+            <p class="font-bold">Total : {{ store.totalPoints.toFixed(2) }}</p>
+            <p v-if="!store.isValidPoints" class="text-xs mt-1 text-red-500">
+              {{ pointsMessage }}
+            </p>
+          </div>
+          <button
+            :disabled="!canProceed"
+            @click="handleNextStep"
+            class="px-6 py-2 rounded text-white font-bold transition-all"
+            :class="{
+              'bg-blue-600 hover:bg-blue-700': canProceed,
+              'bg-gray-400 cursor-not-allowed': !canProceed,
+            }"
+          >
+            Suivant
+          </button>
+        </div>
       </div>
-
-      <div class="mt-8 flex justify-end">
-        <button
-          :disabled="!canProceed"
-          @click="handleNextStep"
-          class="px-6 py-2 rounded text-white font-bold transition-all"
-          :class="{
-            'bg-blue-600 hover:bg-blue-700': canProceed,
-            'bg-gray-400 cursor-not-allowed': !canProceed,
-          }"
-        >
-          Suivant
-        </button>
-      </div>
-    </div>
-
-    <div
-      class="fixed top-1/2 right-10 transform -translate-y-1/2 bg-white shadow-lg p-4 rounded-lg border"
-      :class="{
-        'border-green-500': store.isValidPoints,
-        'border-red-500': !store.isValidPoints,
-      }"
-    >
-      <p
-        class="font-bold"
-        :class="{
-          'text-green-500': store.isValidPoints,
-          'text-red-500': !store.isValidPoints,
-        }"
-      >
-        {{ store.isValidPoints ? "Score valide" : "Score invalide" }}
-      </p>
-      <p class="mt-2 text-gray-600">
-        Total : {{ store.totalPoints.toFixed(2) }}
-      </p>
-      <p v-if="!store.isValidPoints" class="text-sm text-red-500">
-        {{ pointsMessage }}
-      </p>
     </div>
   </div>
 </template>
@@ -121,13 +98,23 @@ import { useSurveyStore } from "~/stores/survey";
 const store = useSurveyStore();
 const isLoading = ref(true);
 
+// Filtrer uniquement les questions avec weighting
+const weightingQuestions = computed(() => {
+  return store.questions.filter(
+    (q) => q.weighting && q.weighting.trim() !== ""
+  );
+});
+
 onMounted(async () => {
   try {
     await store.fetchQuestions();
-    store.questions.forEach((q) => {
+    // Initialiser les poids uniquement pour les questions avec weighting
+    weightingQuestions.value.forEach((q) => {
       if (store.weights[q.id] === undefined) {
         store.weights[q.id] = 0;
       }
+      // Stocker le texte de la question pour l'envoi final
+      store.weightingTexts[q.id] = q.weighting;
     });
     store.calculateTotalPoints();
   } catch (error) {

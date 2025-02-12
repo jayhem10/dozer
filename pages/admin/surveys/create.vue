@@ -12,6 +12,7 @@
     </div>
 
     <form @submit.prevent="addSurvey">
+      <!-- Title and Description fields remain unchanged -->
       <div class="mb-6">
         <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
           Titre
@@ -47,6 +48,7 @@
         </p>
       </div>
 
+      <!-- Multiplier section remains unchanged -->
       <div class="mb-6">
         <label class="block text-sm font-medium text-gray-700 mb-2">
           Multiplicateur de points
@@ -84,6 +86,7 @@
         </div>
       </div>
 
+      <!-- Updated Questions Section -->
       <h2 class="text-lg font-semibold mb-4">Questions</h2>
       <div
         v-for="(question, index) in questions"
@@ -101,22 +104,36 @@
             <font-awesome-icon :icon="['fas', 'trash']" />
           </button>
         </div>
-        <input
-          v-model="question.text"
-          type="text"
-          placeholder="Texte de la question"
-          class="w-full px-4 py-2 border border-gray-300 rounded-md mb-4 focus:outline-none focus:ring focus:ring-blue-200"
-        />
+
+        <!-- Weighting Question -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Question pour la pondération
+          </label>
+          <input
+            v-model="question.weighting"
+            type="text"
+            placeholder="Question pour la pondération"
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+          />
+        </div>
+
+        <!-- Rating Question -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Question pour l'évaluation
+          </label>
+          <input
+            v-model="question.rating"
+            type="text"
+            placeholder="Question pour l'évaluation"
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+          />
+        </div>
+
         <p v-if="errors[`question-${index}`]" class="text-red-500 text-sm">
           {{ errors[`question-${index}`] }}
         </p>
-        <select
-          v-model="question.type"
-          class="w-full px-4 py-2 mt-4 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-        >
-          <option value="weighting">Pondération</option>
-          <option value="rating">Évaluation</option>
-        </select>
       </div>
 
       <div class="flex justify-between items-center mt-6">
@@ -154,6 +171,7 @@ import { navigateTo } from "#imports";
 
 import { useSurveyStore } from "@/stores/survey";
 import { POINT_MULTIPLIER } from "@/constants/survey";
+import { Question, FormattedQuestion } from "@/stores/survey";
 
 const toast = useToast();
 
@@ -164,12 +182,15 @@ const customMultiplier = ref("");
 const title = ref("");
 const isCreatingSurvey = ref(false);
 const description = ref("");
-const questions = ref([{ text: "", type: "weighting" }]);
-const errors = ref({});
+const questions = ref<Question[]>([{ weighting: "", rating: "" }]);
+const errors = ref<Record<string, string>>({});
 
 const store = useSurveyStore();
 
-const addQuestion = () => questions.value.push({ text: "", type: "weighting" });
+const addQuestion = () => {
+  questions.value.push({ weighting: "", rating: "" });
+};
+
 const removeQuestion = (index: number) => questions.value.splice(index, 1);
 
 const validateForm = () => {
@@ -200,10 +221,10 @@ const validateForm = () => {
   }
 
   questions.value.forEach((question, index) => {
-    if (!question.text.trim()) {
-      errors.value[`question-${index}`] = `Le texte de la question ${
+    if (!question.weighting?.trim() && !question.rating?.trim()) {
+      errors.value[`question-${index}`] = `La question ${
         index + 1
-      } est requis.`;
+      } doit avoir au moins un texte rempli (pondération ou évaluation).`;
       valid = false;
     }
   });
@@ -214,17 +235,24 @@ const validateForm = () => {
 const addSurvey = async () => {
   if (!validateForm()) return;
   isCreatingSurvey.value = true;
+
   try {
     const pointMultiplier = useDefaultMultiplier.value
       ? defaultMultiplier
       : evaluate(String(customMultiplier.value).trim());
 
+    const formattedQuestions = questions.value.map((q) => ({
+      weighting: q.weighting?.trim() || null,
+      rating: q.rating?.trim() || null,
+    }));
+
     await store.createSurvey({
       title: title.value,
       description: description.value,
-      questions: questions.value,
+      questions: formattedQuestions,
       point_multiplier: pointMultiplier,
     });
+
     navigateTo(`/admin/send-keys/${store.surveyId}`);
     toast("Sondage créé avec succès !");
   } catch (error) {

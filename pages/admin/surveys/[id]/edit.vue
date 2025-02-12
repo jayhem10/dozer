@@ -96,33 +96,26 @@
 
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              Texte de la question
+              Question pour la pondération
             </label>
             <input
-              v-model="question.text"
+              v-model="question.weighting"
               type="text"
-              placeholder="Texte de la question"
+              placeholder="Question pour la pondération"
               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
             />
-            <p
-              v-if="errors[`question-${index}`]"
-              class="text-red-500 text-sm mt-1"
-            >
-              {{ errors[`question-${index}`] }}
-            </p>
           </div>
 
-          <div>
+          <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              Type
+              Question pour l'évaluation
             </label>
-            <select
-              v-model="question.type"
+            <input
+              v-model="question.rating"
+              type="text"
+              placeholder="Question pour l'évaluation"
               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-            >
-              <option value="weighting">Pondération</option>
-              <option value="rating">Évaluation</option>
-            </select>
+            />
           </div>
         </div>
 
@@ -165,6 +158,7 @@ import { useSupabaseClient, useRoute } from "#imports";
 import { navigateTo } from "nuxt/app";
 import { evaluate } from "mathjs";
 import { useToast } from "vue-toastification";
+import { Question } from "@/stores/survey";
 
 const supabase = useSupabaseClient();
 const route = useRoute();
@@ -176,7 +170,7 @@ const isUpdating = ref(false);
 const title = ref<string>("");
 const description = ref<string>("");
 const pointMultiplier = ref<string>("1");
-const questions = ref<Array<{ id?: number; text: string; type: string }>>([]);
+const questions = ref<Question[]>([]);
 const deletedQuestions = ref<number[]>([]);
 const errors = ref<Record<string, string>>({});
 
@@ -185,7 +179,9 @@ onMounted(async () => {
   try {
     const { data, error } = await supabase
       .from("surveys")
-      .select("title, description, point_multiplier, questions(id, text, type)")
+      .select(
+        "title, description, point_multiplier, questions(id, weighting, rating)"
+      )
       .eq("id", id)
       .single();
 
@@ -207,7 +203,7 @@ onMounted(async () => {
 
 const addQuestion = () => {
   if (questions.value.length < 10) {
-    questions.value.push({ text: "", type: "weighting" });
+    questions.value.push({ weighting: "", rating: "" });
   }
 };
 
@@ -267,9 +263,12 @@ const validateForm = () => {
     valid = false;
   } else {
     questions.value.forEach((question, index) => {
-      if (!question.text.trim()) {
+      if (
+        (!question.weighting || !question.weighting.trim()) &&
+        (!question.rating || !question.rating.trim())
+      ) {
         errors.value[`question-${index}`] =
-          "Le texte de la question est requis.";
+          "Au moins une question doit être remplie.";
         valid = false;
       }
     });
@@ -282,6 +281,7 @@ const updateSurvey = async () => {
   if (!validateForm()) return;
 
   isUpdating.value = true;
+
   try {
     const multiplier = validateAndEvaluateMultiplier();
     if (multiplier === null) return;
@@ -304,16 +304,24 @@ const updateSurvey = async () => {
 
     for (const question of questions.value) {
       if (question.id) {
+        // Mise à jour d'une question existante
         await supabase
           .from("questions")
-          .update({ text: question.text, type: question.type })
+          .update({
+            weighting: question.weighting || null,
+            rating: question.rating || null,
+          })
           .eq("id", question.id);
       } else {
-        await supabase
-          .from("questions")
-          .insert({ survey_id: id, text: question.text, type: question.type });
+        // Création d'une nouvelle question
+        await supabase.from("questions").insert({
+          survey_id: id,
+          weighting: question.weighting || null,
+          rating: question.rating || null,
+        });
       }
     }
+
     toast.success("Sondage modifié avec succès !");
     navigateTo("/admin/surveys");
   } catch (error) {
