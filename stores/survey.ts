@@ -25,6 +25,7 @@ export interface Question {
   rating?: string;
   weighting?: string;
   created_at?: string;
+  position?: number;
 }
 
 export interface Response {
@@ -258,6 +259,7 @@ export const useSurveyStore = defineStore("survey", {
           survey_id: survey.id,
           weighting: q.weighting || null,
           rating: q.rating || null,
+          position: q.position || null,
         }));
 
         const { data: createdQuestions, error: questionsError } = await client

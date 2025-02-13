@@ -180,7 +180,7 @@ onMounted(async () => {
     const { data, error } = await supabase
       .from("surveys")
       .select(
-        "title, description, point_multiplier, questions(id, weighting, rating)"
+        "title, description, point_multiplier, questions(id, weighting, rating, position)"
       )
       .eq("id", id)
       .single();
@@ -190,7 +190,9 @@ onMounted(async () => {
     title.value = data.title || "";
     description.value = data.description || "";
     pointMultiplier.value = String(data.point_multiplier || "1");
-    questions.value = data.questions || [];
+    questions.value = (data.questions || []).sort(
+      (a: Question, b: Question) => (a.position || 0) - (b.position || 0)
+    );
 
     validateAndEvaluateMultiplier();
   } catch (error) {
@@ -203,10 +205,18 @@ onMounted(async () => {
 
 const addQuestion = () => {
   if (questions.value.length < 10) {
+    // Réorganiser d'abord toutes les positions pour être sûr
+    questions.value = questions.value.map((q, idx) => ({
+      ...q,
+      position: idx + 1,
+    }));
+
+    // Ajouter la nouvelle question avec la position suivante
+    const newPosition = questions.value.length + 1;
     questions.value.push({
       weighting: "",
       rating: "",
-      position: questions.value.length + 1,
+      position: newPosition,
     });
   }
 };
@@ -217,6 +227,12 @@ const removeQuestion = (index: number) => {
     deletedQuestions.value.push(question.id);
   }
   questions.value.splice(index, 1);
+
+  // Réorganiser immédiatement toutes les positions
+  questions.value = questions.value.map((q, idx) => ({
+    ...q,
+    position: idx + 1,
+  }));
 };
 
 const validateAndEvaluateMultiplier = (): number | null => {
@@ -283,12 +299,19 @@ const validateForm = () => {
 
 const updateSurvey = async () => {
   if (!validateForm()) return;
-
   isUpdating.value = true;
 
   try {
     const multiplier = validateAndEvaluateMultiplier();
     if (multiplier === null) return;
+
+    // Réorganiser toutes les positions avant l'envoi
+    questions.value = questions.value
+      .sort((a, b) => (a.position || 0) - (b.position || 0))
+      .map((q, idx) => ({
+        ...q,
+        position: idx + 1,
+      }));
 
     await supabase
       .from("surveys")
@@ -306,6 +329,7 @@ const updateSurvey = async () => {
         .in("id", deletedQuestions.value);
     }
 
+    // Mettre à jour les questions avec leurs positions réorganisées
     for (const question of questions.value) {
       if (question.id) {
         // Mise à jour d'une question existante
@@ -314,6 +338,7 @@ const updateSurvey = async () => {
           .update({
             weighting: question.weighting || null,
             rating: question.rating || null,
+            position: question.position, // Position réorganisée
           })
           .eq("id", question.id);
       } else {
@@ -322,6 +347,7 @@ const updateSurvey = async () => {
           survey_id: id,
           weighting: question.weighting || null,
           rating: question.rating || null,
+          position: question.position, // Position réorganisée
         });
       }
     }

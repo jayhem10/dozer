@@ -182,25 +182,33 @@ const customMultiplier = ref("");
 const title = ref("");
 const isCreatingSurvey = ref(false);
 const description = ref("");
-const questions = ref<Question[]>([{ weighting: "", rating: "", position: 1 }]);
+const questions = ref<Question[]>([
+  {
+    weighting: "",
+    rating: "",
+    position: 1,
+  },
+]);
 const errors = ref<Record<string, string>>({});
 
 const store = useSurveyStore();
 
 const addQuestion = () => {
+  const newPosition = questions.value.length + 1;
   questions.value.push({
     weighting: "",
     rating: "",
-    position: questions.value.length + 1,
+    position: newPosition,
   });
 };
 
 const removeQuestion = (index: number) => {
   questions.value.splice(index, 1);
   // Réorganiser les positions après suppression
-  questions.value.forEach((q, idx) => {
-    q.position = idx + 1;
-  });
+  questions.value = questions.value.map((q, idx) => ({
+    ...q,
+    position: idx + 1,
+  }));
 };
 
 const validateForm = () => {
@@ -251,10 +259,11 @@ const addSurvey = async () => {
       ? defaultMultiplier
       : evaluate(String(customMultiplier.value).trim());
 
-    const formattedQuestions = questions.value.map((q) => ({
+    // S'assurer que les positions sont correctement assignées
+    const formattedQuestions = questions.value.map((q, idx) => ({
       weighting: q.weighting?.trim() || null,
       rating: q.rating?.trim() || null,
-      position: q.position,
+      position: idx + 1,
     }));
 
     await store.createSurvey({

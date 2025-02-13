@@ -53,7 +53,7 @@ const questions = computed(() => {
   });
 
   return Array.from(allQuestions.values()).sort(
-    (a, b) => a.position - b.position
+    (a, b) => (a.position || 0) - (b.position || 0)
   );
 });
 
