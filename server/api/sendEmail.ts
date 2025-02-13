@@ -48,8 +48,8 @@ export default defineEventHandler(async (event) => {
     sendSmtpEmail.subject = `Invitation à participer au sondage : ${surveyTitle}`;
     sendSmtpEmail.htmlContent = messageHtml;
     sendSmtpEmail.sender = {
-      name: "Echo Sondages",
-      email: "noreply@votredomaine.com",
+      name: "Sondages Dozer x Qantis",
+      email: "dozer@qantis.co",
     };
     sendSmtpEmail.to = [{ email: recipientEmail }];
 
