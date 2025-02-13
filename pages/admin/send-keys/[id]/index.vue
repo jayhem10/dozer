@@ -123,7 +123,7 @@ import { useSurveyStore } from "@/stores/survey";
 import { useSupabaseClient, navigateTo } from "#imports";
 import { useToast } from "vue-toastification";
 
-import sendEmail from "@/utils/emailService";
+import emailService from "@/utils/emailService";
 
 interface Collaborator {
   id: string;
@@ -233,7 +233,14 @@ const sendKeys = async () => {
 
     for (const key of keys) {
       try {
-        await sendEmail(key.email, store.surveyTitle, key.key);
+        const result = await emailService.sendEmail(
+          key.email,
+          store.surveyTitle,
+          key.key
+        );
+        if (!result.success) {
+          throw new Error(result.error);
+        }
 
         const { error } = await supabase
           .from("access_keys")

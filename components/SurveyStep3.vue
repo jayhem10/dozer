@@ -29,7 +29,6 @@
                 {{ item.rating }}
               </label>
               <div class="flex items-center gap-2 min-w-[200px]">
-                <span class="text-xs text-gray-500">0</span>
                 <input
                   type="range"
                   :id="item.id"
@@ -39,7 +38,6 @@
                   step="1"
                   class="flex-1 h-2 bg-gray-200 rounded-full"
                 />
-                <span class="text-xs text-gray-500">10</span>
                 <span
                   class="w-6 text-center font-medium"
                   :class="{

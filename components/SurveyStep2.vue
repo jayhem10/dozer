@@ -39,7 +39,6 @@
                 {{ item.weighting }}
               </label>
               <div class="flex items-center gap-2 min-w-[200px]">
-                <span class="text-xs text-gray-500">0</span>
                 <input
                   type="range"
                   :id="item.id"
@@ -50,7 +49,6 @@
                   class="flex-1 h-2 bg-gray-200 rounded-full"
                   @input="store.calculateTotalPoints"
                 />
-                <span class="text-xs text-gray-500">3</span>
                 <span
                   class="w-6 text-center font-medium"
                   :class="{

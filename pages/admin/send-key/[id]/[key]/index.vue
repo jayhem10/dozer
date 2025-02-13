@@ -102,7 +102,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useSupabaseClient, useRoute, navigateTo } from "#imports";
 import { useToast } from "vue-toastification";
-import sendEmail from "@/utils/emailService";
+import emailService from "@/utils/emailService";
 
 const toast = useToast();
 const searchQuery = ref("");
@@ -198,7 +198,14 @@ const sendKey = async () => {
       return;
     }
 
-    await sendEmail(collaborator.email, surveyTitle.value, key.value);
+    const result = await emailService.sendEmail(
+      collaborator.email,
+      surveyTitle.value,
+      key.value
+    );
+    if (!result.success) {
+      throw new Error(result.error);
+    }
     toast.success(`Clé envoyée à ${collaborator.email}`);
 
     const { error } = await supabase
