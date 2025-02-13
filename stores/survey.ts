@@ -199,7 +199,7 @@ export const useSurveyStore = defineStore("survey", {
           "title",
           "description",
           "point_multiplier",
-          "questions (id, weighting, rating)",
+          "questions (id, weighting, rating, position)",
           "is_active",
           "access_keys (*)",
         ];
@@ -223,7 +223,11 @@ export const useSurveyStore = defineStore("survey", {
         if (survey.questions) {
           this.questions = survey.questions;
 
-          survey.questions.forEach((q) => {
+          const sortedQuestions = survey.questions.sort(
+            (a, b) => a.position - b.position
+          );
+
+          sortedQuestions.forEach((q) => {
             if (q.id) {
               this.weights[q.id] = 0;
               this.ratings[q.id] = 0;
@@ -497,15 +501,20 @@ export const useSurveyStore = defineStore("survey", {
 
         const { data: surveyQuestions, error: questionsError } = await client
           .from("questions")
-          .select("id, weighting, rating")
+          .select("id, weighting, rating, position")
           .eq("survey_id", survey.id);
 
         if (questionsError || !surveyQuestions) {
           throw new Error("Erreur lors de la récupération des questions.");
         }
+        const sortedQuestions = surveyQuestions.map((q, index) => ({
+          ...q,
+          position: q.position ?? index,
+        }));
 
-        this.questions = surveyQuestions;
-        surveyQuestions.forEach((q) => {
+        this.questions = sortedQuestions;
+
+        sortedQuestions.forEach((q) => {
           if (q.id) {
             this.weights[q.id] = 0;
             this.ratings[q.id] = 0;

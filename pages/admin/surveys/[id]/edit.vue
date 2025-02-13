@@ -203,7 +203,11 @@ onMounted(async () => {
 
 const addQuestion = () => {
   if (questions.value.length < 10) {
-    questions.value.push({ weighting: "", rating: "" });
+    questions.value.push({
+      weighting: "",
+      rating: "",
+      position: questions.value.length + 1,
+    });
   }
 };
 

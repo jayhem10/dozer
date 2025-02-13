@@ -26,31 +26,55 @@
         </div>
       </div>
       <p class="text-gray-600 mb-10">{{ currentSurvey.description }}</p>
-      <div v-if="responses && responses.length > 0">
-        <ResponsesTotals :responses="responses" />
-        <ResponsesChart
-          :responses="responses"
-          :questionLabels="questionLabels"
-        />
-      </div>
-      <div class="w-full h-[2px] bg-gray-900 my-8"></div>
-      <div class="text-xl font-bold text-center">
-        Réponse des collaborateurs
-      </div>
-      <div>
-        <div
-          v-if="responses && responses.length === 0"
-          class="text-gray-600 text-center"
+      <div v-if="responses && responses.length > 0" class="space-y-8">
+        <button
+          @click="showSummary = !showSummary"
+          class="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition"
         >
-          Aucune réponse enregistrée pour cette enquête.
-        </div>
-        <div v-else class="space-y-6">
-          <ResponseCard
-            v-for="response in responses"
-            :key="response.id"
-            :response="response"
+          <font-awesome-icon
+            :icon="['fas', showSummary ? 'chevron-up' : 'chevron-down']"
+          />
+          {{ showSummary ? "Masquer" : "Afficher" }} le résumé des résultats
+        </button>
+        <Transition name="fade">
+          <div class="bg-white p-6 rounded-lg shadow" v-if="showSummary">
+            <div>
+              <h2 class="text-xl font-semibold mb-4">Résumé des résultats</h2>
+              <ResultsSummary
+                :responses="responses"
+                :weightingQuestions="weightingQuestions"
+                :ratingQuestions="ratingQuestions"
+              />
+            </div>
+          </div>
+        </Transition>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <ResponsesChart
+            :responses="responses"
+            :weightingQuestions="weightingQuestions"
+            :ratingQuestions="ratingQuestions"
+            :questionLabels="questionLabels"
           />
         </div>
+      </div>
+      <div class="w-full h-[2px] bg-gray-200 my-8"></div>
+      <div class="text-xl font-bold text-center mb-6">
+        Réponses des collaborateurs
+      </div>
+      <div
+        v-if="responses && responses.length === 0"
+        class="text-gray-600 text-center"
+      >
+        Aucune réponse enregistrée pour cette enquête.
+      </div>
+      <div v-else class="space-y-6">
+        <ResponseCard
+          v-for="response in responses"
+          :key="response.id"
+          :response="response"
+          :weightingQuestions="weightingQuestions"
+          :ratingQuestions="ratingQuestions"
+        />
       </div>
     </div>
   </div>
@@ -58,11 +82,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import ResponsesTotals from "@/components/admin/ResponsesTotals.vue";
 import ResponseCard from "@/components/admin/ResponseCard.vue";
 import ResponsesChart from "@/components/admin/ResponsesChart.vue";
+import ResultsSummary from "@/components/admin/ResultsSummary.vue";
+
 import { useRoute } from "vue-router";
 import { navigateTo } from "nuxt/app";
+import { useSurveyStore } from "@/stores/survey";
 
 const route = useRoute();
 const store = useSurveyStore();
@@ -70,9 +96,25 @@ const supabase = useSupabaseClient();
 
 const surveyId = route.params.id;
 const isLoading = ref(true);
+const showSummary = ref(false);
 
 const currentSurvey = computed(() => store.currentSurvey);
 const responses = computed(() => store.currentSurvey?.responses);
+
+const weightingQuestions = computed(() => {
+  if (!currentSurvey.value?.questions) return [];
+  return currentSurvey.value.questions.filter((q) => q.weighting);
+});
+
+const ratingQuestions = computed(() => {
+  if (!currentSurvey.value?.questions) return [];
+  return currentSurvey.value.questions.filter((q) => q.rating);
+});
+
+const allQuestions = computed(() => {
+  if (!currentSurvey.value?.questions) return [];
+  return currentSurvey.value.questions;
+});
 
 onMounted(async () => {
   try {
@@ -116,71 +158,90 @@ const generateExport = async () => {
       return;
     }
 
-    const globalTotals = {
-      ratings: {},
-      weights: {},
-    };
+    // Créer un mapping des questions trié par position
+    const sortedQuestions = currentSurvey.value.questions
+      .sort((a, b) => a.position - b.position)
+      .reduce((acc, question) => {
+        acc[question.id] = {
+          position: question.position,
+          rating: question.rating,
+          weight: question.weighting,
+        };
+        return acc;
+      }, {});
 
-    const questionIds = new Set();
-    const questionLabels = {};
-    responseData.forEach((response) => {
-      const ratings = response.answers.ratings || {};
-      const weights = response.answers.weights || {};
+    // Création de l'en-tête du CSV avec la liste des questions triées
+    let csvContent = '"Questions"\n';
 
-      Object.keys({ ...ratings, ...weights }).forEach((questionId) => {
-        questionIds.add(questionId);
-        questionLabels[questionId] =
-          ratings[questionId]?.text ||
-          weights[questionId]?.text ||
-          "Question inconnue";
-
-        if (!globalTotals.ratings[questionId]) {
-          globalTotals.ratings[questionId] = 0;
-        }
-        if (!globalTotals.weights[questionId]) {
-          globalTotals.weights[questionId] = 0;
-        }
-
-        globalTotals.ratings[questionId] += ratings[questionId]?.value || 0;
-        globalTotals.weights[questionId] += weights[questionId]?.value || 0;
+    // Créer les lignes d'en-tête pour chaque question
+    Object.entries(sortedQuestions)
+      .sort((a, b) => a[1].position - b[1].position)
+      .forEach(([id, data], index) => {
+        csvContent += `"${index + 1}","${data.weight || "N"}","${
+          data.rating || "N"
+        }"\n`;
       });
-    });
 
-    const sortedQuestionIds = Array.from(questionIds).sort();
+    csvContent += '\n"Résultats"\n';
 
-    let csvContent = `"Question"\n`;
-    sortedQuestionIds.forEach((id, index) => {
-      csvContent += `"${index + 1}: ${questionLabels[id]}"\n`;
-    });
-    csvContent += `\n`;
+    // En-têtes des colonnes pour les résultats
+    const headers = ["ID"];
+    Object.entries(sortedQuestions)
+      .sort((a, b) => a[1].position - b[1].position)
+      .forEach((_, index) => {
+        headers.push(`Pondération ${index + 1}`, `Évaluation ${index + 1}`);
+      });
+    csvContent += `"${headers.join('","')}"\n`;
 
-    csvContent += `"ID de réponse","${sortedQuestionIds
-      .flatMap((_, index) => [`Pondération ${index + 1}`, `Note ${index + 1}`])
-      .join('","')}"\n`;
-
+    // Ajouter les données pour chaque réponse
     responseData.forEach((response) => {
-      const ratings = response.answers.ratings || {};
-      const weights = response.answers.weights || {};
+      const row = [response.id];
+      const { ratings = {}, weights = {} } = response.answers;
 
-      const values = sortedQuestionIds
-        .map((id) => [
-          weights[id]?.value !== undefined ? weights[id].value : 0,
-          ratings[id]?.value !== undefined ? ratings[id].value : 0,
-        ])
-        .flat();
+      Object.entries(sortedQuestions)
+        .sort((a, b) => a[1].position - b[1].position)
+        .forEach(([questionId]) => {
+          row.push(
+            weights[questionId]?.value !== undefined
+              ? weights[questionId].value
+              : "N",
+            ratings[questionId]?.value !== undefined
+              ? ratings[questionId].value
+              : "N"
+          );
+        });
 
-      csvContent += `"${response.id}","${values.join('","')}"\n`;
+      csvContent += `"${row.join('","')}"\n`;
     });
 
-    const totalValues = sortedQuestionIds
-      .map((id) => [
-        globalTotals.weights[id] || 0,
-        globalTotals.ratings[id] || 0,
-      ])
-      .flat();
+    // Calcul et ajout des totaux
+    const totals = ["Totaux"];
+    Object.entries(sortedQuestions)
+      .sort((a, b) => a[1].position - b[1].position)
+      .forEach(([questionId]) => {
+        let weightTotal = 0;
+        let ratingTotal = 0;
+        let weightCount = 0;
+        let ratingCount = 0;
 
-    csvContent += `"Totaux globaux","${totalValues.join('","')}"\n\n`;
+        responseData.forEach((response) => {
+          if (response.answers.weights?.[questionId]?.value !== undefined) {
+            weightTotal += response.answers.weights[questionId].value;
+            weightCount++;
+          }
+          if (response.answers.ratings?.[questionId]?.value !== undefined) {
+            ratingTotal += response.answers.ratings[questionId].value;
+            ratingCount++;
+          }
+        });
 
+        totals.push(weightCount > 0 ? weightTotal : "N");
+        totals.push(ratingCount > 0 ? ratingTotal : "N");
+      });
+
+    csvContent += `"${totals.join('","')}"\n\n`;
+
+    // Ajouter les informations sur les clés
     csvContent += `"Clés non utilisées"\n`;
     keys
       .filter((key) => !key.is_used)
@@ -193,6 +254,7 @@ const generateExport = async () => {
       keys.filter((key) => !key.is_used).length
     }"\n`;
 
+    // Téléchargement du fichier
     const dateTime = new Date().toISOString().replace(/:/g, "-");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -213,16 +275,17 @@ const generateExport = async () => {
 
 const questionLabels = computed(() => {
   const labels: Record<string, string> = {};
-  const responsesData = store.currentSurvey?.responses || [];
-  responsesData.forEach((response) => {
-    const ratings = response.answers.ratings || {};
-    const weights = response.answers.weights || {};
 
-    Object.keys({ ...ratings, ...weights }).forEach((id) => {
-      labels[id] =
-        ratings[id]?.text || weights[id]?.text || "Question inconnue";
-    });
+  weightingQuestions.value.forEach((q) => {
+    if (q.id) labels[q.id] = q.weighting || "";
   });
+
+  ratingQuestions.value.forEach((q) => {
+    if (q.id) labels[q.id] = q.rating || "";
+  });
+
   return labels;
 });
 </script>
+
+<style scoped></style>

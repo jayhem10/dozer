@@ -1,70 +1,9 @@
 <template>
-  <div class="space-y-6">
-    <h2 class="text-xl font-bold text-center mt-4">Moyennes des réponses</h2>
-    <ClientOnly>
-      <div class="relative bg-white p-6 rounded-lg shadow max-w-5xl mx-auto">
-        <div class="relative h-[500px] w-full">
-          <Bar v-if="chartData" :data="chartData" :options="chartOptions" />
-        </div>
-      </div>
-    </ClientOnly>
-
-    <div class="mt-4 bg-white p-4 rounded-lg shadow max-w-5xl mx-auto">
-      <h3 class="text-md font-bold text-gray-800 mb-4">
-        Détails des Questions
-      </h3>
-      <table
-        class="w-full border-collapse border border-gray-300 text-gray-700"
-      >
-        <thead>
-          <tr>
-            <th class="border border-gray-300 px-4 py-2 bg-gray-200 text-left">
-              #
-            </th>
-            <th class="border border-gray-300 px-4 py-2 bg-gray-200 text-left">
-              Question
-            </th>
-            <th
-              class="border border-gray-300 px-4 py-2 bg-gray-200 text-center"
-            >
-              Moyenne des pondérations
-            </th>
-            <th
-              class="border border-gray-300 px-4 py-2 bg-gray-200 text-center"
-            >
-              Moyenne des évaluations
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="(label, index) in numberedQuestionLabels"
-            :key="index"
-            class="odd:bg-white even:bg-gray-50"
-          >
-            <td class="border border-gray-300 px-4 py-2 text-center font-bold">
-              {{ index + 1 }}
-            </td>
-            <td class="border border-gray-300 px-4 py-2">{{ label }}</td>
-            <td class="border border-gray-300 px-4 py-2 text-center">
-              {{
-                averageWeights[index] !== undefined
-                  ? averageWeights[index]
-                  : "N/A"
-              }}
-            </td>
-            <td class="border border-gray-300 px-4 py-2 text-center">
-              {{
-                averageRatings[index] !== undefined
-                  ? averageRatings[index]
-                  : "N/A"
-              }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+  <ClientOnly>
+    <div class="h-[500px] w-full">
+      <Bar v-if="chartData" :data="chartData" :options="chartOptions" />
     </div>
-  </div>
+  </ClientOnly>
 </template>
 
 <script setup lang="ts">
@@ -77,141 +16,157 @@ import {
   BarElement,
   CategoryScale,
   LinearScale,
+  PointElement,
 } from "chart.js";
 import { computed } from "vue";
+import { Question, Response } from "stores/survey";
 
-// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
+  PointElement,
   Title,
   Tooltip,
   Legend
 );
 
-const props = defineProps({
-  responses: {
-    type: Array,
-    required: true,
-  },
-  questionLabels: {
-    type: Object,
-    required: true,
-  },
-});
+const props = defineProps<{
+  responses: Response[];
+  weightingQuestions: Question[];
+  ratingQuestions: Question[];
+}>();
 
-// Extract question labels for displaying questions and legends
-const numberedQuestionLabels = computed(() =>
-  Object.values(props.questionLabels)
-);
+const questions = computed(() => {
+  const allQuestions = new Map();
 
-// Prepare data for the chart
-const chartData = computed(() => {
-  const questionIds = Object.keys(props.questionLabels);
-  const averageRatings: number[] = [];
-  const minRatings: number[] = [];
-  const maxRatings: number[] = [];
-  const averageWeights: number[] = [];
-  const minWeights: number[] = [];
-  const maxWeights: number[] = [];
-
-  questionIds.forEach((id) => {
-    const allRatings = props.responses.map(
-      (response) => response.answers.ratings[id]?.value || 0
-    );
-    const allWeights = props.responses.map(
-      (response) => response.answers.weights[id]?.value || 0
-    );
-
-    // Ratings
-    const averageRating =
-      allRatings.reduce((sum, value) => sum + value, 0) / allRatings.length ||
-      0;
-    const minRating = Math.min(...allRatings);
-    const maxRating = Math.max(...allRatings);
-
-    // Weights
-    const averageWeight =
-      allWeights.reduce((sum, value) => sum + value, 0) / allWeights.length ||
-      0;
-    const minWeight = Math.min(...allWeights);
-    const maxWeight = Math.max(...allWeights);
-
-    averageRatings.push(parseFloat(averageRating.toFixed(2)));
-    minRatings.push(minRating);
-    maxRatings.push(maxRating);
-
-    averageWeights.push(parseFloat(averageWeight.toFixed(2)));
-    minWeights.push(minWeight);
-    maxWeights.push(maxWeight);
+  props.weightingQuestions.forEach((q) => {
+    allQuestions.set(q.id, { ...q });
   });
 
-  return {
-    labels: questionIds.map((_, index) => `${index + 1}`), // Display only numbers
-    datasets: [
-      {
-        label: "Moyenne des Ratings",
-        data: averageRatings,
-        backgroundColor: "rgba(75, 192, 192, 0.6)",
-      },
-      {
-        label: "Valeur la plus basse des Ratings",
-        data: minRatings,
-        backgroundColor: "rgba(255, 99, 132, 0.6)",
-      },
-      {
-        label: "Valeur la plus haute des Ratings",
-        data: maxRatings,
-        backgroundColor: "rgba(54, 162, 235, 0.6)",
-      },
-      {
-        label: "Moyenne des Weights",
-        data: averageWeights,
-        backgroundColor: "rgba(153, 102, 255, 0.6)",
-      },
-      {
-        label: "Valeur la plus basse des Weights",
-        data: minWeights,
-        backgroundColor: "rgba(255, 206, 86, 0.6)",
-      },
-      {
-        label: "Valeur la plus haute des Weights",
-        data: maxWeights,
-        backgroundColor: "rgba(75, 192, 192, 0.6)",
-      },
-    ],
-  };
-});
-
-// Calculate averages for the table
-const averageRatings = computed(() => {
-  const questionIds = Object.keys(props.questionLabels);
-  return questionIds.map((id) => {
-    const allRatings = props.responses.map(
-      (response) => response.answers.ratings[id]?.value || 0
-    );
-    if (allRatings.length === 0) return undefined;
-    const average =
-      allRatings.reduce((sum, value) => sum + value, 0) / allRatings.length;
-    return parseFloat(average.toFixed(2));
+  props.ratingQuestions.forEach((q) => {
+    if (allQuestions.has(q.id)) {
+      allQuestions.get(q.id).rating = q.rating;
+    } else {
+      allQuestions.set(q.id, { ...q });
+    }
   });
+
+  return Array.from(allQuestions.values()).sort(
+    (a, b) => a.position - b.position
+  );
 });
 
-const averageWeights = computed(() => {
-  const questionIds = Object.keys(props.questionLabels);
-  return questionIds.map((id) => {
-    const allWeights = props.responses.map(
-      (response) => response.answers.weights[id]?.value || 0
-    );
-    if (allWeights.length === 0) return undefined;
-    const average =
-      allWeights.reduce((sum, value) => sum + value, 0) / allWeights.length;
-    return parseFloat(average.toFixed(2));
-  });
-});
+const getWeightingAverage = (questionId: string) => {
+  const values = props.responses.map(
+    (r) => r.answers?.weights?.[questionId]?.value || 0
+  );
+  return values.reduce((sum, val) => sum + val, 0) / values.length || 0;
+};
 
-// Chart options
+const getRatingAverage = (questionId: string) => {
+  const values = props.responses.map(
+    (r) => r.answers?.ratings?.[questionId]?.value || 0
+  );
+  return values.reduce((sum, val) => sum + val, 0) / values.length || 0;
+};
+
+const getWeightingMinMax = (questionId: string): [number, number] => {
+  const values = props.responses.map(
+    (r) => r.answers?.weights?.[questionId]?.value || 0
+  );
+  return [Math.min(...values), Math.max(...values)];
+};
+
+const getRatingMinMax = (questionId: string): [number, number] => {
+  const values = props.responses.map(
+    (r) => r.answers?.ratings?.[questionId]?.value || 0
+  );
+  return [Math.min(...values), Math.max(...values)];
+};
+
+const chartData = computed(() => ({
+  labels: questions.value.map((_, index) => `${index + 1}`),
+  datasets: [
+    // Pondérations
+    {
+      type: "bar",
+      label: "Pondération Maximum",
+      data: questions.value.map((q: Question) => {
+        if (!q.weighting) return null;
+        const [_, max] = getWeightingMinMax(q.id);
+        return max;
+      }),
+      backgroundColor: "rgba(75, 192, 192, 0.9)",
+      barPercentage: 0.9,
+      categoryPercentage: 0.8,
+      yAxisID: "y-weighting",
+    },
+    {
+      type: "bar",
+      label: "Pondération Moyenne",
+      data: questions.value.map((q: Question) =>
+        q.weighting ? getWeightingAverage(q.id) : null
+      ),
+      backgroundColor: "rgba(75, 192, 192, 0.6)",
+      barPercentage: 0.9,
+      categoryPercentage: 0.8,
+      yAxisID: "y-weighting",
+    },
+    {
+      type: "bar",
+      label: "Pondération Minimum",
+      data: questions.value.map((q: Question) => {
+        if (!q.weighting) return null;
+        const [min, _] = getWeightingMinMax(q.id);
+        return min;
+      }),
+      backgroundColor: "rgba(75, 192, 192, 0.3)",
+      barPercentage: 0.9,
+      categoryPercentage: 0.8,
+      yAxisID: "y-weighting",
+    },
+    // Évaluations
+    {
+      type: "bar",
+      label: "Évaluation Maximum",
+      data: questions.value.map((q: Question) => {
+        if (!q.rating) return null;
+        const [_, max] = getRatingMinMax(q.id);
+        return max;
+      }),
+      backgroundColor: "rgba(153, 102, 255, 0.9)",
+      barPercentage: 0.9,
+      categoryPercentage: 0.8,
+      yAxisID: "y-rating",
+    },
+    {
+      type: "bar",
+      label: "Évaluation Moyenne",
+      data: questions.value.map((q: Question) =>
+        q.rating ? getRatingAverage(q.id) : null
+      ),
+      backgroundColor: "rgba(153, 102, 255, 0.6)",
+      barPercentage: 0.9,
+      categoryPercentage: 0.8,
+      yAxisID: "y-rating",
+    },
+    {
+      type: "bar",
+      label: "Évaluation Minimum",
+      data: questions.value.map((q: Question) => {
+        if (!q.rating) return null;
+        const [min, _] = getRatingMinMax(q.id);
+        return min;
+      }),
+      backgroundColor: "rgba(153, 102, 255, 0.3)",
+      barPercentage: 0.9,
+      categoryPercentage: 0.8,
+      yAxisID: "y-rating",
+    },
+  ],
+}));
+
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -221,40 +176,80 @@ const chartOptions = {
     },
     title: {
       display: true,
-      text: "Analyse des Réponses par Question",
+      text: "Résultats par question",
+      font: {
+        size: 16,
+        weight: "bold" as const,
+      },
+    },
+    tooltip: {
+      callbacks: {
+        label: function (context: any) {
+          const datasetLabel = context.dataset.label;
+          const value = context.parsed.y;
+          const question = questions.value[context.dataIndex];
+
+          const questionText = datasetLabel.includes("Pondération")
+            ? question.weighting
+            : question.rating;
+
+          return [
+            `${datasetLabel}: ${value.toFixed(2)}`,
+            `Question: ${questionText}`,
+          ];
+        },
+      },
+    },
+  },
+  layout: {
+    padding: {
+      left: 10,
+      right: 10,
+      top: 0,
+      bottom: 10,
     },
   },
   scales: {
-    x: {
+    "y-weighting": {
+      position: "left",
+      beginAtZero: true,
+      max: 10,
       ticks: {
-        callback: function (value, index) {
-          return `${index + 1}`;
-        },
-        font: {
-          size: 12,
-        },
+        stepSize: 1,
       },
       title: {
         display: true,
-        text: "Numéro des Questions",
+        text: "Pondérations",
+        padding: { top: 10, bottom: 10 },
+      },
+      grid: {
+        drawOnChartArea: true,
       },
     },
-    y: {
+    "y-rating": {
+      position: "right",
       beginAtZero: true,
-      min: 0,
       max: 10,
+      ticks: {
+        stepSize: 1,
+      },
       title: {
         display: true,
-        text: "Valeurs",
+        text: "Évaluations",
+        padding: { top: 10, bottom: 10 },
+      },
+      grid: {
+        drawOnChartArea: false,
+      },
+    },
+    x: {
+      offset: true,
+      title: {
+        display: true,
+        text: "Numéro de question",
+        padding: { top: 10 },
       },
     },
   },
-};
+} as const;
 </script>
-
-<style scoped>
-/* Style for the container to center and adapt to all devices */
-.relative {
-  width: 100%;
-}
-</style>

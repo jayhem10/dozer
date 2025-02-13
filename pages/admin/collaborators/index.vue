@@ -1,33 +1,5 @@
 <template>
   <div class="max-w-4xl mx-auto p-6 mt-10">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">Collaborateurs</h1>
-      <div class="flex space-x-4">
-        <button
-          v-tippy="'Exporter en CSV'"
-          @click="exportToCSV"
-          class="bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-md shadow hover:from-green-500 hover:to-green-700 transition"
-        >
-          <font-awesome-icon :icon="['fas', 'file-export']" />
-          Exporter les collaborateurs
-        </button>
-        <button
-          v-tippy="'Ajouter un collaborateur'"
-          @click="openAddModal"
-          class="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2 rounded-md shadow hover:from-blue-500 hover:to-blue-700 transition"
-        >
-          <font-awesome-icon :icon="['fas', 'plus']" />
-        </button>
-        <button
-          v-tippy="'Retour'"
-          @click="backToAdmin"
-          class="bg-gradient-to-r from-gray-400 to-gray-600 text-white px-4 py-2 rounded-md shadow hover:from-gray-500 hover:to-gray-700 transition"
-        >
-          <font-awesome-icon :icon="['fas', 'arrow-left']" />
-        </button>
-      </div>
-    </div>
-
     <div v-if="isLoading" class="flex justify-center items-center h-64">
       <div
         class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
@@ -35,11 +7,39 @@
     </div>
 
     <div v-else>
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Collaborateurs</h1>
+        <div class="flex space-x-4">
+          <button
+            v-tippy="'Exporter en CSV'"
+            @click="exportToCSV"
+            class="bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-md shadow hover:from-green-500 hover:to-green-700 transition"
+          >
+            <font-awesome-icon :icon="['fas', 'file-export']" />
+            Exporter les collaborateurs
+          </button>
+          <button
+            v-tippy="'Ajouter un collaborateur'"
+            @click="openAddModal"
+            class="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2 rounded-md shadow hover:from-blue-500 hover:to-blue-700 transition"
+          >
+            <font-awesome-icon :icon="['fas', 'plus']" />
+          </button>
+          <button
+            v-tippy="'Retour'"
+            @click="backToAdmin"
+            class="bg-gradient-to-r from-gray-400 to-gray-600 text-white px-4 py-2 rounded-md shadow hover:from-gray-500 hover:to-gray-700 transition"
+          >
+            <font-awesome-icon :icon="['fas', 'arrow-left']" />
+          </button>
+        </div>
+      </div>
+
       <div class="relative mb-6">
         <input
           v-model="searchText"
           type="text"
-          placeholder="Rechercher par prénom, nom ou email"
+          :placeholder="`Rechercher par prénom, nom ou email dans les ${filteredCollaborators.length} collaborateurs`"
           class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-200"
         />
         <button
@@ -70,23 +70,27 @@
           >
             <td class="border border-gray-300 px-4 py-2">
               <input
-                v-model="collaborator.first_name"
+                :value="collaborator.first_name"
                 class="w-full px-2 py-1 border border-gray-300 rounded-md"
-                @blur="updateCollaborator(collaborator)"
+                @input="e => handleInput(collaborator, 'first_name', (e.target as HTMLInputElement).value)"
+                @blur="e => updateField(collaborator, 'first_name', (e.target as HTMLInputElement).value)"
               />
             </td>
             <td class="border border-gray-300 px-4 py-2">
               <input
-                v-model="collaborator.last_name"
+                :value="collaborator.last_name"
                 class="w-full px-2 py-1 border border-gray-300 rounded-md"
-                @blur="updateCollaborator(collaborator)"
+                @input="e => handleInput(collaborator, 'last_name', (e.target as HTMLInputElement).value)"
+                @blur="e => updateField(collaborator, 'last_name', (e.target as HTMLInputElement).value)"
               />
             </td>
             <td class="border border-gray-300 px-4 py-2">
               <input
-                v-model="collaborator.email"
+                :value="collaborator.email"
+                type="email"
                 class="w-full px-2 py-1 border border-gray-300 rounded-md"
-                @blur="updateCollaborator(collaborator)"
+                @input="e => handleInput(collaborator, 'email', (e.target as HTMLInputElement).value)"
+                @blur="e => updateField(collaborator, 'email', (e.target as HTMLInputElement).value)"
               />
             </td>
             <td class="border border-gray-300 px-4 py-2 text-center">
@@ -133,8 +137,15 @@ const searchText = computed({
 const isLoading = computed(() => store.isLoading);
 const filteredCollaborators = computed(() => store.getFilteredCollaborators);
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const localCollaborators = ref(new Map());
+
 onMounted(async () => {
-  await store.fetchCollaborators();
+  try {
+    await store.fetchCollaborators();
+  } catch (error) {
+    console.error("Erreur lors du chargement initial:", error);
+  }
 });
 
 interface ErrorWithMessage {
@@ -143,24 +154,66 @@ interface ErrorWithMessage {
 
 const addCollaborator = async () => {
   try {
+    // Validation de l'email
+    if (!emailRegex.test(newCollaborator.value.email)) {
+      toast.error("Veuillez entrer une adresse email valide.");
+      await store.fetchCollaborators();
+      return;
+    }
+
     await store.addCollaborator(newCollaborator.value);
     isAddModalOpen.value = false;
     toast.success("Collaborateur ajouté avec succès !");
   } catch (error: unknown) {
     const err = error as ErrorWithMessage;
     toast.error(err.message || "Erreur lors de l'ajout du collaborateur.");
+    await store.fetchCollaborators();
   }
 };
 
-const updateCollaborator = async (collaborator: Collaborator) => {
+// Gestion de l'input en temps réel (mise à jour locale uniquement)
+const handleInput = (
+  collaborator: Collaborator,
+  field: keyof Collaborator,
+  value: string
+) => {
+  const updatedCollaborator = {
+    ...collaborator,
+    [field]: value,
+  };
+  localCollaborators.value.set(collaborator.id, updatedCollaborator);
+};
+
+// Mise à jour vers le serveur (au blur)
+const updateField = async (
+  collaborator: Collaborator,
+  field: keyof Collaborator,
+  value: string
+) => {
+  // Si la valeur n'a pas changé, ne rien faire
+  if (collaborator[field] === value) return;
+
   try {
-    await store.updateCollaborator(collaborator);
+    // Validation de l'email si nécessaire
+    if (field === "email" && !emailRegex.test(value)) {
+      toast.error("Veuillez entrer une adresse email valide.");
+      await store.fetchCollaborators(); // Recharge les données
+      return;
+    }
+
+    const updatedCollaborator = {
+      ...collaborator,
+      [field]: value,
+    };
+
+    await store.updateCollaborator(updatedCollaborator);
     toast.success("Collaborateur mis à jour avec succès !");
   } catch (error: unknown) {
     const err = error as ErrorWithMessage;
     toast.error(
       err.message || "Erreur lors de la mise à jour du collaborateur."
     );
+    await store.fetchCollaborators();
   }
 };
 

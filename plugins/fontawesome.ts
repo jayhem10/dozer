@@ -26,6 +26,8 @@ import {
   faExclamationCircle,
   faPaperPlane,
   faClipboard,
+  faChevronUp,
+  faChevronDown,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -55,7 +57,9 @@ library.add(
   faUserSecret,
   faShieldAlt,
   faBolt,
-  faBullhorn
+  faBullhorn,
+  faChevronUp,
+  faChevronDown
 );
 
 export default defineNuxtPlugin((nuxtApp) => {

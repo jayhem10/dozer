@@ -98,11 +98,11 @@ import { useSurveyStore } from "~/stores/survey";
 const store = useSurveyStore();
 const isLoading = ref(true);
 
-// Filtrer uniquement les questions avec weighting
+// Filtrer et trier les questions avec weighting
 const weightingQuestions = computed(() => {
-  return store.questions.filter(
-    (q) => q.weighting && q.weighting.trim() !== ""
-  );
+  return store.questions
+    .filter((q) => q.weighting && q.weighting.trim() !== "")
+    .sort((a, b) => a.position - b.position);
 });
 
 onMounted(async () => {

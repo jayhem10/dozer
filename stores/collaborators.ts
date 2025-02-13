@@ -20,7 +20,7 @@ export const useCollaboratorStore = defineStore("collaborator", {
     collaborators: [],
     filteredCollaborators: [],
     searchText: "",
-    isLoading: false,
+    isLoading: true,
   }),
 
   getters: {

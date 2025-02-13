@@ -116,7 +116,9 @@ const hasAllZeros = computed(() =>
 );
 
 const filteredQuestions = computed(() =>
-  store.questions.filter((q: Question) => q.rating)
+  store.questions
+    .filter((q: Question) => q.rating)
+    .sort((a, b) => a.position - b.position)
 );
 
 const submitResults = async () => {
